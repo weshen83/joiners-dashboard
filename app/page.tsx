@@ -166,21 +166,21 @@ interface ThemeConfig {
 // 3 Design Modes
 const getTheme = (mode: 'ruadhan' | 'best' | 'joinrs'): ThemeConfig => {
   switch (mode) {
-    case 'joinrs': // Client Brand
+    case 'joinrs': // Client Brand (UPDATED: White BG, Orange Cards)
       return {
         name: 'Joinrs Brand',
-        appBg: 'bg-[#FA4B19]', // Orange Background
-        cardBg: 'bg-white/10 backdrop-blur-md', // Glassy white on orange
-        headerBg: 'bg-[#FA4B19] border-b border-white/20',
+        appBg: 'bg-[#FFFFFF]', // White Background
+        cardBg: 'bg-[#FA4B19]', // Orange Cards
+        headerBg: 'bg-[#FFFFFF] border-b border-gray-200', // White Header
         borderColor: 'border-white/20',
-        radius: 'rounded-xl', // Rounded aesthetic per MuseoSlabRounded vibe
-        drillText: 'text-white',
-        isGlass: true,
-        shadow: 'shadow-lg shadow-[#2D1E46]/10', // Purple shadow for depth
+        radius: 'rounded-xl', 
+        drillText: 'text-white', // Text inside orange cards should be white
+        isGlass: false,
+        shadow: 'shadow-xl shadow-[#FA4B19]/20', // Orange shadow
         chartOpacity: 0.2,
-        accentColor: '#2D1E46', // Purple Accent (Charts, Active States)
+        accentColor: '#2D1E46', // Purple Accent (for active states/charts)
         fontHead: 'font-[family-name:var(--font-museo-moderno),sans-serif]',
-        textColor: 'text-white'
+        textColor: 'text-[#2D1E46]' // Dark Purple text on White BG (Header/App), White on Cards (handled in component)
       };
     case 'best': // Enhanced Ruadhan
       return {
@@ -245,17 +245,20 @@ interface StatCardProps {
 }
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, subValue, trend, isActive, onClick, bgColor, theme }) => {
-  // Logic: 
-  // If specific color requested (Green/Red) AND we are in Ruadhan mode -> use specific color.
-  // If in 'joinrs' mode -> use subtle orange/purple accents instead of hard red/green.
-  
   let backgroundStyle = {};
   let borderClass = theme.borderColor;
+  
+  // Dynamic Text Colors for Cards
+  // Ruadhan/Best: White text on Purple cards
+  // Joinrs: White text on Orange cards
+  const cardTextColor = 'text-white'; 
 
   if (theme.name === 'Joinrs Brand') {
-     // Joinrs style: Purple accent when active
-     backgroundStyle = isActive ? { backgroundColor: 'rgba(45, 30, 70, 0.2)', borderColor: '#2D1E46' } : { backgroundColor: 'rgba(255,255,255,0.1)' };
-     borderClass = isActive ? 'border-[#2D1E46]' : theme.borderColor;
+     // Joinrs style: Orange cards. Active state gets a Purple tint/border.
+     backgroundStyle = isActive 
+        ? { backgroundColor: '#FA4B19', borderColor: '#2D1E46', boxShadow: 'inset 0 0 0 2px #2D1E46' } 
+        : { backgroundColor: '#FA4B19' };
+     borderClass = isActive ? 'border-[#2D1E46]' : 'border-transparent';
   } else if (bgColor) {
     backgroundStyle = { backgroundColor: bgColor };
   } else {
@@ -269,30 +272,28 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, subValue, trend, isAc
         relative overflow-hidden p-6 text-left w-full group ${theme.radius} ${theme.shadow}
         transition-all duration-300 border ${borderClass}
         ${isActive && theme.name !== 'Joinrs Brand' ? 'ring-2 ring-white z-10 scale-[1.02]' : 'hover:border-white/20'}
-        ${theme.cardBg}
+        ${theme.name !== 'Joinrs Brand' ? theme.cardBg : ''}
       `}
       style={backgroundStyle}
     >
       <div className="flex justify-between items-start mb-4">
-        {/* Title Font dynamic based on theme */}
-        <p className={`text-xs font-bold uppercase tracking-widest opacity-70 ${theme.fontHead}`} style={{ color: theme.textColor }}>{title}</p>
+        <p className={`text-xs font-bold uppercase tracking-widest opacity-70 ${theme.fontHead} ${cardTextColor}`}>{title}</p>
         {trend && (
-          <span className={`flex items-center text-[10px] font-inter font-bold px-2 py-0.5 rounded-full bg-white/10`} style={{ color: theme.textColor }}>
+          <span className={`flex items-center text-[10px] font-inter font-bold px-2 py-0.5 rounded-full bg-white/20 ${cardTextColor}`}>
             {parseFloat(trend) > 0 ? <ArrowUpRight size={10} className="mr-1"/> : <ArrowDownRight size={10} className="mr-1"/>}
             {Math.abs(parseFloat(trend))}%
           </span>
         )}
       </div>
       <div>
-        {/* Value Font always Inter per user request ("all numbers... should be font Inter") */}
-        <h3 className={`text-3xl font-bold tracking-tight font-inter`} style={{ color: theme.textColor }}>{value}</h3>
+        <h3 className={`text-3xl font-bold tracking-tight font-inter ${cardTextColor}`}>{value}</h3>
         <div className="flex items-center mt-2 gap-2">
-           <span className={`text-[10px] font-medium uppercase tracking-wide opacity-50 font-inter`} style={{ color: theme.textColor }}>Goal</span>
-           <span className={`text-xs font-semibold opacity-90 font-inter`} style={{ color: theme.textColor }}>{subValue}</span>
+           <span className={`text-[10px] font-medium uppercase tracking-wide opacity-50 font-inter ${cardTextColor}`}>Goal</span>
+           <span className={`text-xs font-semibold opacity-90 font-inter ${cardTextColor}`}>{subValue}</span>
         </div>
       </div>
       
-      {/* Joinrs Active Indicator line */}
+      {/* Joinrs Active Indicator line - PURPLE */}
       {isActive && theme.name === 'Joinrs Brand' && (
         <div className="absolute bottom-0 left-0 w-full h-1 bg-[#2D1E46]" />
       )}
@@ -316,10 +317,10 @@ interface DrillDownTableProps {
 const DrillDownTable: React.FC<DrillDownTableProps> = ({ title, icon: Icon, data, total, theme }) => (
   <div 
     className={`flex flex-col h-full overflow-hidden border ${theme.borderColor} ${theme.radius} ${theme.shadow}`}
-    style={{ backgroundColor: theme.name === 'Joinrs Brand' ? 'rgba(255,255,255,0.1)' : PALETTE.purpleDark }}
+    style={{ backgroundColor: theme.name === 'Joinrs Brand' ? '#FA4B19' : PALETTE.purpleDark }}
   >
     <div className={`px-5 py-4 border-b ${theme.borderColor} flex items-center justify-between bg-black/10`}>
-      <h4 className={`font-bold flex items-center gap-2 text-sm ${theme.fontHead} tracking-wide`} style={{ color: theme.textColor }}>
+      <h4 className={`font-bold flex items-center gap-2 text-sm ${theme.fontHead} tracking-wide text-white`}>
         <Icon size={16} className="opacity-70" /> {title}
       </h4>
     </div>
@@ -330,8 +331,8 @@ const DrillDownTable: React.FC<DrillDownTableProps> = ({ title, icon: Icon, data
             <div className="flex justify-between text-xs mb-1.5">
               <span className={`font-medium font-inter ${theme.drillText}`}>{item.name}</span>
               <div className="text-right">
-                <span className={`font-mono font-bold font-inter`} style={{ color: theme.textColor }}>{item.value.toLocaleString()}</span>
-                <span className={`ml-1 text-[10px] opacity-50 font-inter`} style={{ color: theme.textColor }}>({total > 0 ? ((item.value / total) * 100).toFixed(1) : 0}%)</span>
+                <span className={`font-mono font-bold font-inter text-white`}>{item.value.toLocaleString()}</span>
+                <span className={`ml-1 text-[10px] opacity-50 font-inter text-white`}>({total > 0 ? ((item.value / total) * 100).toFixed(1) : 0}%)</span>
               </div>
             </div>
             <div className="w-full h-1 overflow-hidden bg-white/10 rounded-full">
@@ -360,9 +361,9 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, t
       <div 
         className="p-4 shadow-2xl border text-xs font-inter backdrop-blur-xl rounded-lg"
         style={{ 
-            backgroundColor: theme.name === 'Joinrs Brand' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(28, 2, 78, 0.95)',
+            backgroundColor: theme.name === 'Joinrs Brand' ? '#FA4B19' : 'rgba(28, 2, 78, 0.95)',
             borderColor: theme.borderColor,
-            color: theme.name === 'Joinrs Brand' ? '#2D1E46' : theme.textColor
+            color: 'white' // Always white text for tooltip on these dark/vibrant backgrounds
         }}
       >
         <p className="font-bold mb-2 border-b pb-1 opacity-70" style={{ borderColor: theme.borderColor }}>{label}</p>
@@ -482,6 +483,7 @@ export default function SalesDashboard() {
   const getChartConfig = () => {
     // Dynamic color based on theme
     const baseColor = theme.accentColor;
+    // Joinrs theme uses Purple accent for lines
     switch (activeMetric) {
       case 'emails_sent': return { actual: 'emails_sent', planned: 'planned_sent', color: baseColor, label: 'Emails Sent' };
       case 'replies': return { actual: 'replies', planned: 'planned_replies', color: baseColor, label: 'Replies' };
@@ -508,7 +510,7 @@ export default function SalesDashboard() {
                     src="/logo.png" 
                     alt="GTMA Logo" 
                     className="h-10 w-auto object-contain transition-all duration-300"
-                    style={{ filter: 'brightness(0) invert(1)' }}
+                    style={{ filter: theme.name === 'Joinrs Brand' ? 'none' : 'brightness(0) invert(1)' }}
                     onError={(e) => { e.currentTarget.style.display='none'; }} 
                   />
                   <span className={`text-xl tracking-wide ${theme.fontHead}`} style={{ color: theme.textColor }}>
@@ -519,10 +521,11 @@ export default function SalesDashboard() {
             </div>
 
             <div className="flex items-center gap-3">
-              <div className={`flex items-center gap-2 border ${theme.borderColor} px-4 py-2 text-sm cursor-pointer hover:bg-white/5 transition-colors ${theme.radius}`} style={{ backgroundColor: theme.cardBg }}>
-                <Calendar size={14} style={{ color: theme.accentColor }}/>
-                <span className="font-semibold text-xs font-inter" style={{ color: theme.textColor }}>Last 120 Days</span>
-                <ChevronDown size={14} className="opacity-50" style={{ color: theme.textColor }}/>
+              <div className={`flex items-center gap-2 border ${theme.borderColor} px-4 py-2 text-sm cursor-pointer hover:bg-white/5 transition-colors ${theme.radius}`} style={{ backgroundColor: theme.name === 'Joinrs Brand' ? '#FA4B19' : theme.cardBg }}>
+                {/* Joinrs Mode: Calendar button is Orange to match cards */}
+                <Calendar size={14} style={{ color: theme.name === 'Joinrs Brand' ? 'white' : theme.accentColor }}/>
+                <span className="font-semibold text-xs font-inter" style={{ color: theme.name === 'Joinrs Brand' ? 'white' : theme.textColor }}>Last 120 Days</span>
+                <ChevronDown size={14} className="opacity-50" style={{ color: theme.name === 'Joinrs Brand' ? 'white' : theme.textColor }}/>
               </div>
               <button className="h-9 w-9 flex items-center justify-center opacity-70 hover:opacity-100 hover:bg-white/10 transition-colors rounded-full" style={{ color: theme.textColor }}>
                 <Bell size={18} />
@@ -593,23 +596,27 @@ export default function SalesDashboard() {
           <div className="grid grid-cols-1 gap-8 mb-8">
             
             {/* --- MAIN CHART --- */}
-            <div className={`w-full p-8 transition-all duration-500 border ${theme.borderColor} ${theme.radius} ${theme.shadow}`} style={{ backgroundColor: theme.cardBg }}>
+            {/* For Joinrs, chart container is Orange. For others, it's specific card BG. */}
+            <div 
+                className={`w-full p-8 transition-all duration-500 border ${theme.borderColor} ${theme.radius} ${theme.shadow}`} 
+                style={{ backgroundColor: theme.name === 'Joinrs Brand' ? '#FA4B19' : theme.cardBg }}
+            >
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h2 className={`text-2xl font-bold flex items-center gap-2 ${theme.fontHead}`} style={{ color: theme.textColor }}>
+                  <h2 className={`text-2xl font-bold flex items-center gap-2 ${theme.fontHead}`} style={{ color: theme.name === 'Joinrs Brand' ? 'white' : theme.textColor }}>
                     Campaign Velocity: {config.label}
                   </h2>
-                  <p className="text-sm mt-1 font-medium opacity-50 font-inter" style={{ color: theme.textColor }}>Comparing Actual Results vs. Strategic Plan</p>
+                  <p className="text-sm mt-1 font-medium opacity-50 font-inter" style={{ color: theme.name === 'Joinrs Brand' ? 'white' : theme.textColor }}>Comparing Actual Results vs. Strategic Plan</p>
                 </div>
                 <div className={`flex items-center gap-6 text-xs font-medium px-4 py-2 border ${theme.borderColor} bg-white/5 ${theme.radius}`}>
                   <div className="flex items-center gap-2">
                     <span className="w-6 h-0.5 border-t-2 border-dashed opacity-40" style={{ borderColor: theme.accentColor }}></span>
-                    <span className="opacity-70 font-inter" style={{ color: theme.textColor }}>Goal</span>
+                    <span className="opacity-70 font-inter" style={{ color: theme.name === 'Joinrs Brand' ? 'white' : theme.textColor }}>Goal</span>
                   </div>
                   <div className="h-4 w-px bg-white/10"></div>
                   <div className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full" style={{ backgroundColor: theme.accentColor }}></span>
-                    <span className="font-inter" style={{ color: theme.textColor }}>Actual</span>
+                    <span className="font-inter" style={{ color: theme.name === 'Joinrs Brand' ? 'white' : theme.textColor }}>Actual</span>
                   </div>
                 </div>
               </div>
@@ -627,24 +634,24 @@ export default function SalesDashboard() {
                     <CartesianGrid 
                       strokeDasharray="3 3" 
                       vertical={false} 
-                      stroke="rgba(254,254,254,0.05)" 
+                      stroke={theme.name === 'Joinrs Brand' ? 'rgba(255,255,255,0.2)' : 'rgba(254,254,254,0.05)'} 
                     />
 
-                    {/* Faint Horizontal Reference Lines - 3/4 Lines */}
-                    <ReferenceLine y={chartMax * 0.25} stroke="rgba(254,254,254,0.1)" strokeDasharray="3 3" />
-                    <ReferenceLine y={chartMax * 0.50} stroke="rgba(254,254,254,0.1)" strokeDasharray="3 3" />
-                    <ReferenceLine y={chartMax * 0.75} stroke="rgba(254,254,254,0.1)" strokeDasharray="3 3" />
+                    {/* Reference Lines */}
+                    <ReferenceLine y={chartMax * 0.25} stroke={theme.name === 'Joinrs Brand' ? 'rgba(255,255,255,0.2)' : 'rgba(254,254,254,0.1)'} strokeDasharray="3 3" />
+                    <ReferenceLine y={chartMax * 0.50} stroke={theme.name === 'Joinrs Brand' ? 'rgba(255,255,255,0.2)' : 'rgba(254,254,254,0.1)'} strokeDasharray="3 3" />
+                    <ReferenceLine y={chartMax * 0.75} stroke={theme.name === 'Joinrs Brand' ? 'rgba(255,255,255,0.2)' : 'rgba(254,254,254,0.1)'} strokeDasharray="3 3" />
 
                     <XAxis 
                       dataKey="displayDate" 
-                      tick={{ fill: 'rgba(254,254,254,0.5)', fontSize: 11, fontWeight: 500, fontFamily: 'Inter' }} 
+                      tick={{ fill: theme.name === 'Joinrs Brand' ? 'rgba(255,255,255,0.8)' : 'rgba(254,254,254,0.5)', fontSize: 11, fontWeight: 500, fontFamily: 'Inter' }} 
                       axisLine={false} 
                       tickLine={false} 
                       minTickGap={60}
                       dy={10}
                     />
                     <YAxis 
-                      tick={{ fill: 'rgba(254,254,254,0.5)', fontSize: 11, fontWeight: 500, fontFamily: 'Inter' }} 
+                      tick={{ fill: theme.name === 'Joinrs Brand' ? 'rgba(255,255,255,0.8)' : 'rgba(254,254,254,0.5)', fontSize: 11, fontWeight: 500, fontFamily: 'Inter' }} 
                       axisLine={false} 
                       tickLine={false}
                       tickFormatter={(value) => value >= 1000 ? `${(value/1000).toFixed(1)}k` : value}
