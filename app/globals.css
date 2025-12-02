@@ -4,7 +4,8 @@
 @tailwind utilities;
 
 /* Import Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+/* Inter for numbers/body, Playfair Display for Ruadhan headers, MuseoModerno for Joinrs headers */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=MuseoModerno:wght@100..900&display=swap');
 
 :root {
   --foreground-rgb: 254, 254, 254; 
