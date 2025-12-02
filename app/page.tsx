@@ -144,23 +144,7 @@ const generateRawCSVData = (): RowData[] => {
 };
 
 /**
- * --- COLORS & FONTS ---
- */
-const COLORS = {
-  purpleDark: '#1c024e',  // Dark Indigo (Cards)
-  purpleLight: '#352c47', // Light Purple (App BG)
-  green: '#077005',       // Success
-  red: '#700805',         // Error
-  white: '#fefefe'        // Text
-};
-
-const FONTS = {
-  head: 'font-[family-name:var(--font-playfair-display),serif]',
-  body: 'font-[family-name:var(--font-inter),sans-serif]',
-};
-
-/**
- * --- COMPONENTS ---
+ * --- THEME CONFIG ---
  */
 
 interface ThemeConfig {
@@ -172,19 +156,21 @@ interface ThemeConfig {
   drillText: string;
   isGlass: boolean;
   shadow: string;
+  chartOpacity: number;
 }
 
 const getTheme = (mode: 'ruadhan' | 'best'): ThemeConfig => {
   if (mode === 'best') {
     return {
       appBg: 'bg-[#352c47]',
-      cardBg: 'bg-gradient-to-b from-[#1c024e] to-[#15013b]', // Subtle gradient
+      cardBg: 'bg-[#1c024e]', 
       headerBg: 'bg-[#1c024e]/90 backdrop-blur-md',
       borderColor: 'border-white/10',
       radius: 'rounded-2xl',
-      drillText: 'text-indigo-200',
+      drillText: 'text-indigo-200', // Premium contrast
       isGlass: true,
-      shadow: 'shadow-xl shadow-black/20'
+      shadow: 'shadow-2xl shadow-black/30',
+      chartOpacity: 0.15
     };
   }
   // Ruadhan Strict Mode
@@ -193,12 +179,31 @@ const getTheme = (mode: 'ruadhan' | 'best'): ThemeConfig => {
     cardBg: 'bg-[#1c024e]',
     headerBg: 'bg-[#1c024e]',
     borderColor: 'border-white/5',
-    radius: 'rounded-lg', // "Apply some border radius"
-    drillText: 'text-[#d8d4e3]', // Readable approximation of light purple
+    radius: 'rounded-lg', 
+    drillText: 'text-[#d8d4e3]', // "Light Purple" text instruction
     isGlass: false,
-    shadow: 'shadow-none'
+    shadow: 'shadow-none',
+    chartOpacity: 0.3
   };
 };
+
+// Colors from Palette
+const PALETTE = {
+  purpleDark: '#1c024e',
+  purpleLight: '#352c47',
+  green: '#077005',
+  red: '#700805',
+  white: '#fefefe'
+};
+
+const FONTS = {
+  head: 'font-[family-name:var(--font-playfair-display),serif]',
+  body: 'font-[family-name:var(--font-inter),sans-serif]',
+};
+
+/**
+ * --- COMPONENTS ---
+ */
 
 interface StatCardProps {
   title: string;
@@ -212,28 +217,29 @@ interface StatCardProps {
 }
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, subValue, trend, isActive, onClick, bgColor, theme }) => {
-  // Use Theme Card BG unless overridden by specific color (Green/Red)
-  const cardBackground = bgColor 
-    ? bgColor 
-    : (theme.isGlass ? theme.cardBg : 'bg-[#1c024e]'); // Explicit hex for Ruadhan mode to be safe
+  // Logic: Ruadhan wants strict colors for Green/Red cards. Best design can use gradients.
   
-  // Clean classes for background
-  const bgClass = bgColor ? '' : theme.cardBg;
-  const bgStyle = bgColor ? { backgroundColor: bgColor } : {};
+  let backgroundStyle = {};
+  let borderClass = theme.borderColor;
+
+  if (bgColor) {
+    backgroundStyle = { backgroundColor: bgColor };
+  } else {
+    backgroundStyle = { backgroundColor: PALETTE.purpleDark };
+  }
 
   return (
     <button 
       onClick={onClick}
       className={`
         relative overflow-hidden p-6 text-left w-full group ${theme.radius} ${theme.shadow}
-        transition-all duration-300 border ${theme.borderColor}
+        transition-all duration-300 border ${borderClass}
         ${isActive ? 'ring-2 ring-white z-10 scale-[1.02]' : 'hover:border-white/20'}
-        ${bgClass}
       `}
-      style={bgStyle}
+      style={backgroundStyle}
     >
       <div className="flex justify-between items-start mb-4">
-        <p className="text-xs font-bold uppercase tracking-widest text-white/70 font-playfair">{title}</p>
+        <p className={`text-xs font-bold uppercase tracking-widest text-white/70 font-playfair`}>{title}</p>
         {trend && (
           <span className="flex items-center text-[10px] font-inter font-bold px-2 py-0.5 rounded-full bg-white/10 text-white">
             {parseFloat(trend) > 0 ? <ArrowUpRight size={10} className="mr-1"/> : <ArrowDownRight size={10} className="mr-1"/>}
@@ -266,7 +272,10 @@ interface DrillDownTableProps {
 }
 
 const DrillDownTable: React.FC<DrillDownTableProps> = ({ title, icon: Icon, data, total, theme }) => (
-  <div className={`flex flex-col h-full overflow-hidden border ${theme.borderColor} ${theme.radius} ${theme.cardBg} ${theme.shadow}`}>
+  <div 
+    className={`flex flex-col h-full overflow-hidden border ${theme.borderColor} ${theme.radius} ${theme.shadow}`}
+    style={{ backgroundColor: PALETTE.purpleDark }}
+  >
     <div className={`px-5 py-4 border-b ${theme.borderColor} flex items-center justify-between bg-black/10`}>
       <h4 className="font-bold flex items-center gap-2 text-sm font-playfair tracking-wide text-white">
         <Icon size={16} className="text-white/70" /> {title}
@@ -277,7 +286,7 @@ const DrillDownTable: React.FC<DrillDownTableProps> = ({ title, icon: Icon, data
         {data.map((item, idx) => (
           <div key={idx} className="group">
             <div className="flex justify-between text-xs mb-1.5">
-              {/* This is the "Light Purple" text instruction */}
+              {/* Light Purple Text for Items */}
               <span className={`font-medium font-inter ${theme.drillText}`}>{item.name}</span>
               <div className="text-right">
                 <span className="font-mono font-bold text-white font-inter">{item.value.toLocaleString()}</span>
@@ -422,7 +431,7 @@ export default function SalesDashboard() {
   const campaignStats = useMemo(() => getGroupedData('campaign_name'), [rawData, activeMetric]);
 
   const getChartConfig = () => {
-    const baseColor = COLORS.white;
+    const baseColor = PALETTE.white;
     switch (activeMetric) {
       case 'emails_sent': return { actual: 'emails_sent', planned: 'planned_sent', color: baseColor, label: 'Emails Sent' };
       case 'replies': return { actual: 'replies', planned: 'planned_replies', color: baseColor, label: 'Replies' };
@@ -467,7 +476,7 @@ export default function SalesDashboard() {
             </div>
 
             <div className="flex items-center gap-3">
-              <div className={`flex items-center gap-2 border ${theme.borderColor} px-4 py-2 text-sm cursor-pointer hover:bg-white/5 transition-colors ${theme.cardBg} ${theme.radius}`}>
+              <div className={`flex items-center gap-2 border ${theme.borderColor} px-4 py-2 text-sm cursor-pointer hover:bg-white/5 transition-colors bg-[#1c024e] ${theme.radius}`}>
                 <Calendar size={14} className="text-white"/>
                 <span className="font-semibold text-xs text-white font-inter">Last 120 Days</span>
                 <ChevronDown size={14} className="text-white/50"/>
@@ -481,14 +490,14 @@ export default function SalesDashboard() {
 
         {isLoading ? (
           <div className="min-h-[calc(100vh-80px)] flex flex-col items-center justify-center">
-            <div className="w-8 h-8 border-4 border-t-transparent rounded-full animate-spin mb-4" style={{ borderColor: COLORS.white, borderTopColor: 'transparent' }}></div>
+            <div className="w-8 h-8 border-4 border-t-transparent rounded-full animate-spin mb-4" style={{ borderColor: PALETTE.white, borderTopColor: 'transparent' }}></div>
             <p className="text-sm font-medium text-white/50 animate-pulse font-inter">Syncing data for Joiners...</p>
           </div>
         ) : (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
           
           {/* --- KPI SCORECARDS --- */}
-          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8 ${designMode === 'ruadhan' ? '' : 'gap-4'}`}>
+          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8`}>
             <StatCard 
               title="Emails Sent" 
               value={totals.emails_sent?.toLocaleString()} 
@@ -523,7 +532,7 @@ export default function SalesDashboard() {
               trend={((totals.meetings_booked! - totals.planned_sqls!) / totals.planned_sqls! * 100).toFixed(1)}
               isActive={activeMetric === 'meetings_booked'}
               onClick={() => setActiveMetric('meetings_booked')}
-              bgColor={COLORS.green} 
+              bgColor={PALETTE.green} 
               theme={theme}
             />
             <StatCard 
@@ -533,7 +542,7 @@ export default function SalesDashboard() {
               trend="-1.5" 
               isActive={activeMetric === 'bounces'}
               onClick={() => setActiveMetric('bounces')}
-              bgColor={COLORS.red} 
+              bgColor={PALETTE.red} 
               theme={theme}
             />
           </div>
@@ -541,7 +550,7 @@ export default function SalesDashboard() {
           <div className="grid grid-cols-1 gap-8 mb-8">
             
             {/* --- MAIN CHART --- */}
-            <div className={`w-full p-8 transition-all duration-500 border ${theme.borderColor} ${theme.cardBg} ${theme.radius} ${theme.shadow}`}>
+            <div className={`w-full p-8 transition-all duration-500 border ${theme.borderColor} ${theme.radius} ${theme.shadow}`} style={{ backgroundColor: PALETTE.purpleDark }}>
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <h2 className="text-2xl font-bold flex items-center gap-2 text-white font-playfair">
@@ -567,7 +576,7 @@ export default function SalesDashboard() {
                   <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorMain" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={config.color} stopOpacity={0.2}/>
+                        <stop offset="5%" stopColor={config.color} stopOpacity={theme.chartOpacity}/>
                         <stop offset="95%" stopColor={config.color} stopOpacity={0}/>
                       </linearGradient>
                     </defs>
