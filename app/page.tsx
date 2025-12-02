@@ -169,16 +169,16 @@ const getTheme = (mode: 'ruadhan' | 'best' | 'joinrs'): ThemeConfig => {
     case 'joinrs': // Client Brand
       return {
         name: 'Joinrs Brand',
-        appBg: 'bg-[#2D1E46]', // Joinrs Purple
-        cardBg: 'bg-white/5 backdrop-blur-md', // Glassy white on purple
-        headerBg: 'bg-[#2D1E46]/95 border-b border-white/10',
-        borderColor: 'border-white/10',
+        appBg: 'bg-[#FA4B19]', // Orange Background
+        cardBg: 'bg-white/10 backdrop-blur-md', // Glassy white on orange
+        headerBg: 'bg-[#FA4B19] border-b border-white/20',
+        borderColor: 'border-white/20',
         radius: 'rounded-xl', // Rounded aesthetic per MuseoSlabRounded vibe
-        drillText: 'text-white/80',
+        drillText: 'text-white',
         isGlass: true,
-        shadow: 'shadow-lg shadow-[#FA4B19]/10', // Orange glow shadow
+        shadow: 'shadow-lg shadow-[#2D1E46]/10', // Purple shadow for depth
         chartOpacity: 0.2,
-        accentColor: '#FA4B19', // Joinrs Orange
+        accentColor: '#2D1E46', // Purple Accent (Charts, Active States)
         fontHead: 'font-[family-name:var(--font-museo-moderno),sans-serif]',
         textColor: 'text-white'
       };
@@ -253,9 +253,9 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, subValue, trend, isAc
   let borderClass = theme.borderColor;
 
   if (theme.name === 'Joinrs Brand') {
-     // Joinrs style: always unified card look, orange active state
-     backgroundStyle = isActive ? { backgroundColor: 'rgba(250, 75, 25, 0.15)', borderColor: '#FA4B19' } : { backgroundColor: 'rgba(255,255,255,0.05)' };
-     borderClass = isActive ? 'border-[#FA4B19]' : theme.borderColor;
+     // Joinrs style: Purple accent when active
+     backgroundStyle = isActive ? { backgroundColor: 'rgba(45, 30, 70, 0.2)', borderColor: '#2D1E46' } : { backgroundColor: 'rgba(255,255,255,0.1)' };
+     borderClass = isActive ? 'border-[#2D1E46]' : theme.borderColor;
   } else if (bgColor) {
     backgroundStyle = { backgroundColor: bgColor };
   } else {
@@ -284,8 +284,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, subValue, trend, isAc
         )}
       </div>
       <div>
-        {/* Value Font always Playfair for Ruadhan, Museo for Joinrs. But NUMBERS specifically requested as Inter in update? 
-            "All the numbers in the 5 widgets should be in the font Inter" -> Override theme.fontHead here for value */}
+        {/* Value Font always Inter per user request ("all numbers... should be font Inter") */}
         <h3 className={`text-3xl font-bold tracking-tight font-inter`} style={{ color: theme.textColor }}>{value}</h3>
         <div className="flex items-center mt-2 gap-2">
            <span className={`text-[10px] font-medium uppercase tracking-wide opacity-50 font-inter`} style={{ color: theme.textColor }}>Goal</span>
@@ -295,7 +294,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, subValue, trend, isAc
       
       {/* Joinrs Active Indicator line */}
       {isActive && theme.name === 'Joinrs Brand' && (
-        <div className="absolute bottom-0 left-0 w-full h-1 bg-[#FA4B19]" />
+        <div className="absolute bottom-0 left-0 w-full h-1 bg-[#2D1E46]" />
       )}
     </button>
   );
@@ -317,7 +316,7 @@ interface DrillDownTableProps {
 const DrillDownTable: React.FC<DrillDownTableProps> = ({ title, icon: Icon, data, total, theme }) => (
   <div 
     className={`flex flex-col h-full overflow-hidden border ${theme.borderColor} ${theme.radius} ${theme.shadow}`}
-    style={{ backgroundColor: theme.name === 'Joinrs Brand' ? 'rgba(255,255,255,0.03)' : PALETTE.purpleDark }}
+    style={{ backgroundColor: theme.name === 'Joinrs Brand' ? 'rgba(255,255,255,0.1)' : PALETTE.purpleDark }}
   >
     <div className={`px-5 py-4 border-b ${theme.borderColor} flex items-center justify-between bg-black/10`}>
       <h4 className={`font-bold flex items-center gap-2 text-sm ${theme.fontHead} tracking-wide`} style={{ color: theme.textColor }}>
@@ -361,9 +360,9 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, t
       <div 
         className="p-4 shadow-2xl border text-xs font-inter backdrop-blur-xl rounded-lg"
         style={{ 
-            backgroundColor: theme.name === 'Joinrs Brand' ? 'rgba(45, 30, 70, 0.95)' : 'rgba(28, 2, 78, 0.95)',
+            backgroundColor: theme.name === 'Joinrs Brand' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(28, 2, 78, 0.95)',
             borderColor: theme.borderColor,
-            color: theme.textColor
+            color: theme.name === 'Joinrs Brand' ? '#2D1E46' : theme.textColor
         }}
       >
         <p className="font-bold mb-2 border-b pb-1 opacity-70" style={{ borderColor: theme.borderColor }}>{label}</p>
