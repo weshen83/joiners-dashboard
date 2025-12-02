@@ -7,7 +7,7 @@ import {
 } from 'recharts';
 import { 
   Calendar, ChevronDown, Filter, ArrowUpRight, ArrowDownRight,
-  Bell, Globe, Server, Layers, Users
+  Bell, Globe, Server, Layers, Users, Palette, Sparkles
 } from 'lucide-react';
 
 /**
@@ -147,10 +147,10 @@ const generateRawCSVData = (): RowData[] => {
  * --- COLORS & FONTS ---
  */
 const COLORS = {
-  purpleDark: '#1c024e',  // Main App Background
-  purpleLight: '#352c47', // Card Background
-  green: '#077005',       // Success Widget
-  red: '#700805',         // Error Widget
+  purpleDark: '#1c024e',  // Dark Indigo (Cards)
+  purpleLight: '#352c47', // Light Purple (App BG)
+  green: '#077005',       // Success
+  red: '#700805',         // Error
   white: '#fefefe'        // Text
 };
 
@@ -163,6 +163,43 @@ const FONTS = {
  * --- COMPONENTS ---
  */
 
+interface ThemeConfig {
+  appBg: string;
+  cardBg: string;
+  headerBg: string;
+  borderColor: string;
+  radius: string;
+  drillText: string;
+  isGlass: boolean;
+  shadow: string;
+}
+
+const getTheme = (mode: 'ruadhan' | 'best'): ThemeConfig => {
+  if (mode === 'best') {
+    return {
+      appBg: 'bg-[#352c47]',
+      cardBg: 'bg-gradient-to-b from-[#1c024e] to-[#15013b]', // Subtle gradient
+      headerBg: 'bg-[#1c024e]/90 backdrop-blur-md',
+      borderColor: 'border-white/10',
+      radius: 'rounded-2xl',
+      drillText: 'text-indigo-200',
+      isGlass: true,
+      shadow: 'shadow-xl shadow-black/20'
+    };
+  }
+  // Ruadhan Strict Mode
+  return {
+    appBg: 'bg-[#352c47]',
+    cardBg: 'bg-[#1c024e]',
+    headerBg: 'bg-[#1c024e]',
+    borderColor: 'border-white/5',
+    radius: 'rounded-lg', // "Apply some border radius"
+    drillText: 'text-[#d8d4e3]', // Readable approximation of light purple
+    isGlass: false,
+    shadow: 'shadow-none'
+  };
+};
+
 interface StatCardProps {
   title: string;
   value: string | undefined;
@@ -171,21 +208,29 @@ interface StatCardProps {
   isActive: boolean;
   onClick: () => void;
   bgColor?: string; 
+  theme: ThemeConfig;
 }
 
-const StatCard: React.FC<StatCardProps> = ({ title, value, subValue, trend, isActive, onClick, bgColor }) => {
-  // Use Light Purple for cards unless overridden
-  const cardBg = bgColor || COLORS.purpleLight;
+const StatCard: React.FC<StatCardProps> = ({ title, value, subValue, trend, isActive, onClick, bgColor, theme }) => {
+  // Use Theme Card BG unless overridden by specific color (Green/Red)
+  const cardBackground = bgColor 
+    ? bgColor 
+    : (theme.isGlass ? theme.cardBg : 'bg-[#1c024e]'); // Explicit hex for Ruadhan mode to be safe
   
+  // Clean classes for background
+  const bgClass = bgColor ? '' : theme.cardBg;
+  const bgStyle = bgColor ? { backgroundColor: bgColor } : {};
+
   return (
     <button 
       onClick={onClick}
       className={`
-        relative overflow-hidden p-6 text-left w-full group rounded-none
-        transition-all duration-300 border border-white/5
+        relative overflow-hidden p-6 text-left w-full group ${theme.radius} ${theme.shadow}
+        transition-all duration-300 border ${theme.borderColor}
         ${isActive ? 'ring-2 ring-white z-10 scale-[1.02]' : 'hover:border-white/20'}
+        ${bgClass}
       `}
-      style={{ backgroundColor: cardBg }}
+      style={bgStyle}
     >
       <div className="flex justify-between items-start mb-4">
         <p className="text-xs font-bold uppercase tracking-widest text-white/70 font-playfair">{title}</p>
@@ -217,11 +262,12 @@ interface DrillDownTableProps {
   icon: React.ElementType;
   data: DrillDownItem[];
   total: number;
+  theme: ThemeConfig;
 }
 
-const DrillDownTable: React.FC<DrillDownTableProps> = ({ title, icon: Icon, data, total }) => (
-  <div className="flex flex-col h-full overflow-hidden border border-white/5" style={{ backgroundColor: COLORS.purpleLight }}>
-    <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between bg-black/10">
+const DrillDownTable: React.FC<DrillDownTableProps> = ({ title, icon: Icon, data, total, theme }) => (
+  <div className={`flex flex-col h-full overflow-hidden border ${theme.borderColor} ${theme.radius} ${theme.cardBg} ${theme.shadow}`}>
+    <div className={`px-5 py-4 border-b ${theme.borderColor} flex items-center justify-between bg-black/10`}>
       <h4 className="font-bold flex items-center gap-2 text-sm font-playfair tracking-wide text-white">
         <Icon size={16} className="text-white/70" /> {title}
       </h4>
@@ -231,15 +277,16 @@ const DrillDownTable: React.FC<DrillDownTableProps> = ({ title, icon: Icon, data
         {data.map((item, idx) => (
           <div key={idx} className="group">
             <div className="flex justify-between text-xs mb-1.5">
-              <span className="font-medium text-white font-inter">{item.name}</span>
+              {/* This is the "Light Purple" text instruction */}
+              <span className={`font-medium font-inter ${theme.drillText}`}>{item.name}</span>
               <div className="text-right">
                 <span className="font-mono font-bold text-white font-inter">{item.value.toLocaleString()}</span>
                 <span className="ml-1 text-[10px] text-white/50 font-inter">({total > 0 ? ((item.value / total) * 100).toFixed(1) : 0}%)</span>
               </div>
             </div>
-            <div className="w-full h-1 overflow-hidden bg-white/10">
+            <div className="w-full h-1 overflow-hidden bg-white/10 rounded-full">
               <div 
-                className="h-full opacity-80 group-hover:opacity-100 transition-all duration-500 bg-white" 
+                className="h-full opacity-80 group-hover:opacity-100 transition-all duration-500 bg-white rounded-full" 
                 style={{ width: `${total > 0 ? (item.value / total) * 100 : 0}%` }}
               ></div>
             </div>
@@ -259,7 +306,7 @@ interface CustomTooltipProps {
 const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="p-4 shadow-2xl border border-white/10 text-xs font-inter backdrop-blur-xl" style={{ backgroundColor: COLORS.purpleLight }}>
+      <div className="p-4 shadow-2xl border border-white/10 text-xs font-inter backdrop-blur-xl bg-[#1c024e]/90 rounded-lg">
         <p className="font-bold mb-2 border-b border-white/10 pb-1 text-white/70">{label}</p>
         {payload.map((entry, index) => (
           <div key={index} className="flex items-center gap-4 mb-1 justify-between">
@@ -277,6 +324,9 @@ export default function SalesDashboard() {
   const [activeMetric, setActiveMetric] = useState<string>('meetings_booked'); 
   const [rawData, setRawData] = useState<RowData[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [designMode, setDesignMode] = useState<'ruadhan' | 'best'>('ruadhan');
+
+  const theme = useMemo(() => getTheme(designMode), [designMode]);
   
   // Initialize Raw Data
   useEffect(() => {
@@ -325,7 +375,6 @@ export default function SalesDashboard() {
     return Array.from(dateMap.values()).sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [rawData]);
 
-  // Calculate Reference Lines (Faint lines for context)
   const chartMax = useMemo(() => {
     if (!chartData.length) return 0;
     const config = { actual: activeMetric, planned: `planned_${activeMetric.split('_')[0] === 'positive' ? 'mqls' : activeMetric === 'meetings_booked' ? 'sqls' : 'sent'}` };
@@ -387,219 +436,257 @@ export default function SalesDashboard() {
   const config = getChartConfig();
 
   return (
-    <div className="min-h-screen transition-colors duration-500 pb-20 font-inter" style={{ backgroundColor: COLORS.purpleDark }}>
-      
-      {/* --- HEADER --- */}
-      <header className="sticky top-0 z-50 transition-all duration-500 border-b border-white/5" style={{ backgroundColor: COLORS.purpleLight }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-4">
+    <>
+      {/* Inject Fonts directly */}
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+        .font-playfair { font-family: 'Playfair Display', serif; }
+        .font-inter { font-family: 'Inter', sans-serif; }
+      `}</style>
+
+      <div className={`min-h-screen transition-colors duration-500 pb-20 font-inter ${theme.appBg}`}>
+        
+        {/* --- HEADER --- */}
+        <header className={`sticky top-0 z-50 transition-all duration-500 border-b ${theme.borderColor} ${theme.headerBg}`}>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div className="flex items-center gap-6">
               <div className="flex items-center gap-4">
-                <img 
-                  src="/logo.png" 
-                  alt="GTMA Logo" 
-                  className="h-10 w-auto object-contain transition-all duration-300"
-                  style={{ filter: 'brightness(0) invert(1)' }}
-                  onError={(e) => { e.currentTarget.style.display='none'; }} 
-                />
-                <span className="text-xl text-white tracking-wide font-playfair">
-                  Attribution Analytics Joinrs.com x The GTMA
-                </span>
+                <div className="flex items-center gap-4">
+                  <img 
+                    src="/logo.png" 
+                    alt="GTMA Logo" 
+                    className="h-10 w-auto object-contain transition-all duration-300"
+                    style={{ filter: 'brightness(0) invert(1)' }}
+                    onError={(e) => { e.currentTarget.style.display='none'; }} 
+                  />
+                  <span className="text-xl text-white tracking-wide font-playfair">
+                    Attribution Analytics Joinrs.com x The GTMA
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 border border-white/10 px-4 py-2 text-sm cursor-pointer hover:bg-white/5 transition-colors" style={{ backgroundColor: COLORS.purpleDark }}>
-              <Calendar size={14} className="text-white"/>
-              <span className="font-semibold text-xs text-white font-inter">Last 120 Days</span>
-              <ChevronDown size={14} className="text-white/50"/>
+            <div className="flex items-center gap-3">
+              <div className={`flex items-center gap-2 border ${theme.borderColor} px-4 py-2 text-sm cursor-pointer hover:bg-white/5 transition-colors ${theme.cardBg} ${theme.radius}`}>
+                <Calendar size={14} className="text-white"/>
+                <span className="font-semibold text-xs text-white font-inter">Last 120 Days</span>
+                <ChevronDown size={14} className="text-white/50"/>
+              </div>
+              <button className="h-9 w-9 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-colors">
+                <Bell size={18} />
+              </button>
             </div>
-            <button className="h-9 w-9 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-colors">
-              <Bell size={18} />
-            </button>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {isLoading ? (
-        <div className="min-h-[calc(100vh-80px)] flex flex-col items-center justify-center">
-          <div className="w-8 h-8 border-4 border-t-transparent rounded-full animate-spin mb-4" style={{ borderColor: COLORS.white, borderTopColor: 'transparent' }}></div>
-          <p className="text-sm font-medium text-white/50 animate-pulse font-inter">Syncing data for Joiners...</p>
-        </div>
-      ) : (
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-        
-        {/* --- KPI SCORECARDS --- */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-0 mb-8 shadow-2xl shadow-black/20">
-          <StatCard 
-            title="Emails Sent" 
-            value={totals.emails_sent?.toLocaleString()} 
-            subValue={totals.planned_sent?.toLocaleString()}
-            trend={((totals.emails_sent! - totals.planned_sent!) / totals.planned_sent! * 100).toFixed(1)}
-            isActive={activeMetric === 'emails_sent'}
-            onClick={() => setActiveMetric('emails_sent')}
-          />
-          <StatCard 
-            title="Replied" 
-            value={totals.replies?.toLocaleString()} 
-            subValue={totals.planned_replies?.toLocaleString()}
-            trend={((totals.replies! - totals.planned_replies!) / totals.planned_replies! * 100).toFixed(1)}
-            isActive={activeMetric === 'replies'}
-            onClick={() => setActiveMetric('replies')}
-          />
-          <StatCard 
-            title="MQLs (Positive)" 
-            value={totals.positive_replies?.toLocaleString()} 
-            subValue={totals.planned_mqls?.toLocaleString()}
-            trend={((totals.positive_replies! - totals.planned_mqls!) / totals.planned_mqls! * 100).toFixed(1)}
-            isActive={activeMetric === 'positive_replies'}
-            onClick={() => setActiveMetric('positive_replies')}
-          />
-          <StatCard 
-            title="SQLs (Meetings)" 
-            value={totals.meetings_booked?.toLocaleString()} 
-            subValue={totals.planned_sqls?.toLocaleString()}
-            trend={((totals.meetings_booked! - totals.planned_sqls!) / totals.planned_sqls! * 100).toFixed(1)}
-            isActive={activeMetric === 'meetings_booked'}
-            onClick={() => setActiveMetric('meetings_booked')}
-            bgColor={COLORS.green} // GREEN Widget
-          />
-          <StatCard 
-            title="Bounces" 
-            value={totals.bounces?.toLocaleString()} 
-            subValue={totals.planned_bounces?.toLocaleString()}
-            trend="-1.5" 
-            isActive={activeMetric === 'bounces'}
-            onClick={() => setActiveMetric('bounces')}
-            bgColor={COLORS.red} // RED Widget
-          />
-        </div>
-
-        <div className="grid grid-cols-1 gap-8 mb-8">
+        {isLoading ? (
+          <div className="min-h-[calc(100vh-80px)] flex flex-col items-center justify-center">
+            <div className="w-8 h-8 border-4 border-t-transparent rounded-full animate-spin mb-4" style={{ borderColor: COLORS.white, borderTopColor: 'transparent' }}></div>
+            <p className="text-sm font-medium text-white/50 animate-pulse font-inter">Syncing data for Joiners...</p>
+          </div>
+        ) : (
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
           
-          {/* --- MAIN CHART --- */}
-          <div className="w-full p-8 transition-all duration-500 border border-white/5" style={{ backgroundColor: COLORS.purpleLight }}>
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h2 className="text-2xl font-bold flex items-center gap-2 text-white font-playfair">
-                  Campaign Velocity: {config.label}
-                </h2>
-                <p className="text-sm mt-1 font-medium text-white/50 font-inter">Comparing Actual Results vs. Strategic Plan</p>
-              </div>
-              <div className="flex items-center gap-6 text-xs font-medium px-4 py-2 border border-white/10 bg-white/5">
-                <div className="flex items-center gap-2">
-                  <span className="w-6 h-0.5 border-t-2 border-dashed opacity-40 border-white"></span>
-                  <span className="text-white/70 font-inter">Goal</span>
+          {/* --- KPI SCORECARDS --- */}
+          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8 ${designMode === 'ruadhan' ? '' : 'gap-4'}`}>
+            <StatCard 
+              title="Emails Sent" 
+              value={totals.emails_sent?.toLocaleString()} 
+              subValue={totals.planned_sent?.toLocaleString()}
+              trend={((totals.emails_sent! - totals.planned_sent!) / totals.planned_sent! * 100).toFixed(1)}
+              isActive={activeMetric === 'emails_sent'}
+              onClick={() => setActiveMetric('emails_sent')}
+              theme={theme}
+            />
+            <StatCard 
+              title="Replied" 
+              value={totals.replies?.toLocaleString()} 
+              subValue={totals.planned_replies?.toLocaleString()}
+              trend={((totals.replies! - totals.planned_replies!) / totals.planned_replies! * 100).toFixed(1)}
+              isActive={activeMetric === 'replies'}
+              onClick={() => setActiveMetric('replies')}
+              theme={theme}
+            />
+            <StatCard 
+              title="MQLs (Positive)" 
+              value={totals.positive_replies?.toLocaleString()} 
+              subValue={totals.planned_mqls?.toLocaleString()}
+              trend={((totals.positive_replies! - totals.planned_mqls!) / totals.planned_mqls! * 100).toFixed(1)}
+              isActive={activeMetric === 'positive_replies'}
+              onClick={() => setActiveMetric('positive_replies')}
+              theme={theme}
+            />
+            <StatCard 
+              title="SQLs (Meetings)" 
+              value={totals.meetings_booked?.toLocaleString()} 
+              subValue={totals.planned_sqls?.toLocaleString()}
+              trend={((totals.meetings_booked! - totals.planned_sqls!) / totals.planned_sqls! * 100).toFixed(1)}
+              isActive={activeMetric === 'meetings_booked'}
+              onClick={() => setActiveMetric('meetings_booked')}
+              bgColor={COLORS.green} 
+              theme={theme}
+            />
+            <StatCard 
+              title="Bounces" 
+              value={totals.bounces?.toLocaleString()} 
+              subValue={totals.planned_bounces?.toLocaleString()}
+              trend="-1.5" 
+              isActive={activeMetric === 'bounces'}
+              onClick={() => setActiveMetric('bounces')}
+              bgColor={COLORS.red} 
+              theme={theme}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-8 mb-8">
+            
+            {/* --- MAIN CHART --- */}
+            <div className={`w-full p-8 transition-all duration-500 border ${theme.borderColor} ${theme.cardBg} ${theme.radius} ${theme.shadow}`}>
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h2 className="text-2xl font-bold flex items-center gap-2 text-white font-playfair">
+                    Campaign Velocity: {config.label}
+                  </h2>
+                  <p className="text-sm mt-1 font-medium text-white/50 font-inter">Comparing Actual Results vs. Strategic Plan</p>
                 </div>
-                <div className="h-4 w-px bg-white/10"></div>
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-white"></span>
-                  <span className="text-white font-inter">Actual</span>
+                <div className={`flex items-center gap-6 text-xs font-medium px-4 py-2 border ${theme.borderColor} bg-white/5 ${theme.radius}`}>
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-0.5 border-t-2 border-dashed opacity-40 border-white"></span>
+                    <span className="text-white/70 font-inter">Goal</span>
+                  </div>
+                  <div className="h-4 w-px bg-white/10"></div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-white"></span>
+                    <span className="text-white font-inter">Actual</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="h-[450px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorMain" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={config.color} stopOpacity={0.2}/>
-                      <stop offset="95%" stopColor={config.color} stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  
-                  <CartesianGrid 
-                    strokeDasharray="3 3" 
-                    vertical={false} 
-                    stroke="rgba(254,254,254,0.05)" 
-                  />
+              <div className="h-[450px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorMain" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={config.color} stopOpacity={0.2}/>
+                        <stop offset="95%" stopColor={config.color} stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    
+                    <CartesianGrid 
+                      strokeDasharray="3 3" 
+                      vertical={false} 
+                      stroke="rgba(254,254,254,0.05)" 
+                    />
 
-                  {/* Faint Horizontal Reference Lines - 3/4 Lines */}
-                  <ReferenceLine y={chartMax * 0.25} stroke="rgba(254,254,254,0.1)" strokeDasharray="3 3" />
-                  <ReferenceLine y={chartMax * 0.50} stroke="rgba(254,254,254,0.1)" strokeDasharray="3 3" />
-                  <ReferenceLine y={chartMax * 0.75} stroke="rgba(254,254,254,0.1)" strokeDasharray="3 3" />
+                    {/* Faint Horizontal Reference Lines - 3/4 Lines */}
+                    <ReferenceLine y={chartMax * 0.25} stroke="rgba(254,254,254,0.1)" strokeDasharray="3 3" />
+                    <ReferenceLine y={chartMax * 0.50} stroke="rgba(254,254,254,0.1)" strokeDasharray="3 3" />
+                    <ReferenceLine y={chartMax * 0.75} stroke="rgba(254,254,254,0.1)" strokeDasharray="3 3" />
 
-                  <XAxis 
-                    dataKey="displayDate" 
-                    tick={{ fill: 'rgba(254,254,254,0.5)', fontSize: 11, fontWeight: 500, fontFamily: 'Inter' }} 
-                    axisLine={false} 
-                    tickLine={false} 
-                    minTickGap={60}
-                    dy={10}
-                  />
-                  <YAxis 
-                    tick={{ fill: 'rgba(254,254,254,0.5)', fontSize: 11, fontWeight: 500, fontFamily: 'Inter' }} 
-                    axisLine={false} 
-                    tickLine={false}
-                    tickFormatter={(value) => value >= 1000 ? `${(value/1000).toFixed(1)}k` : value}
-                    dx={-10}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  
-                  <Line 
-                    type="monotone" 
-                    dataKey={config.planned} 
-                    stroke={config.color} 
-                    strokeDasharray="4 4" 
-                    strokeWidth={2}
-                    dot={false}
-                    opacity={0.4}
-                    name="Goal"
-                    activeDot={false}
-                    isAnimationActive={true}
-                  />
-                  
-                  <Area 
-                    type="monotone" 
-                    dataKey={config.actual} 
-                    stroke={config.color} 
-                    strokeWidth={2}
-                    fillOpacity={1} 
-                    fill="url(#colorMain)" 
-                    name="Actual"
-                    animationDuration={1500}
-                  />
-                </ComposedChart>
-              </ResponsiveContainer>
+                    <XAxis 
+                      dataKey="displayDate" 
+                      tick={{ fill: 'rgba(254,254,254,0.5)', fontSize: 11, fontWeight: 500, fontFamily: 'Inter' }} 
+                      axisLine={false} 
+                      tickLine={false} 
+                      minTickGap={60}
+                      dy={10}
+                    />
+                    <YAxis 
+                      tick={{ fill: 'rgba(254,254,254,0.5)', fontSize: 11, fontWeight: 500, fontFamily: 'Inter' }} 
+                      axisLine={false} 
+                      tickLine={false}
+                      tickFormatter={(value) => value >= 1000 ? `${(value/1000).toFixed(1)}k` : value}
+                      dx={-10}
+                    />
+                    <Tooltip content={<CustomTooltip />} />
+                    
+                    <Line 
+                      type="monotone" 
+                      dataKey={config.planned} 
+                      stroke={config.color} 
+                      strokeDasharray="4 4" 
+                      strokeWidth={2}
+                      dot={false}
+                      opacity={0.4}
+                      name="Goal"
+                      activeDot={false}
+                      isAnimationActive={true}
+                    />
+                    
+                    <Area 
+                      type="monotone" 
+                      dataKey={config.actual} 
+                      stroke={config.color} 
+                      strokeWidth={2}
+                      fillOpacity={1} 
+                      fill="url(#colorMain)" 
+                      name="Actual"
+                      animationDuration={1500}
+                    />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
-        </div>
 
-        <h3 className="text-xs font-bold uppercase tracking-widest mb-6 flex items-center gap-2 px-1 text-white/50 font-inter">
-          <Filter size={12} /> Data Attribution: <span className="text-white">{config.label}</span>
-        </h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <DrillDownTable 
-            title="Inbox Provider" 
-            icon={Server} 
-            data={inboxStats.data} 
-            total={inboxStats.total}
-          />
-          <DrillDownTable 
-            title="Region" 
-            icon={Globe} 
-            data={regionStats.data} 
-            total={regionStats.total}
-          />
-          <DrillDownTable 
-            title="Persona" 
-            icon={Users} 
-            data={personaStats.data} 
-            total={personaStats.total}
-          />
-          <DrillDownTable 
-            title="Campaign" 
-            icon={Layers} 
-            data={campaignStats.data} 
-            total={campaignStats.total}
-          />
-        </div>
+          <h3 className="text-xs font-bold uppercase tracking-widest mb-6 flex items-center gap-2 px-1 text-white/50 font-inter">
+            <Filter size={12} /> Data Attribution: <span className="text-white">{config.label}</span>
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <DrillDownTable 
+              title="Inbox Provider" 
+              icon={Server} 
+              data={inboxStats.data} 
+              total={inboxStats.total}
+              theme={theme}
+            />
+            <DrillDownTable 
+              title="Region" 
+              icon={Globe} 
+              data={regionStats.data} 
+              total={regionStats.total}
+              theme={theme}
+            />
+            <DrillDownTable 
+              title="Persona" 
+              icon={Users} 
+              data={personaStats.data} 
+              total={personaStats.total}
+              theme={theme}
+            />
+            <DrillDownTable 
+              title="Campaign" 
+              icon={Layers} 
+              data={campaignStats.data} 
+              total={campaignStats.total}
+              theme={theme}
+            />
+          </div>
 
-      </main>
-      )}
-    </div>
+        </main>
+        )}
+
+        {/* --- DESIGN ENGINE TOGGLE --- */}
+        <div className="fixed bottom-6 right-6 z-50">
+          <button 
+            onClick={() => setDesignMode(prev => prev === 'ruadhan' ? 'best' : 'ruadhan')}
+            className="group flex items-center gap-2 px-4 py-2 bg-white text-[#1c024e] font-bold rounded-full shadow-lg hover:scale-105 transition-all"
+          >
+            {designMode === 'ruadhan' ? (
+              <>
+                <Palette size={16} /> 
+                <span>Switch to Best Design</span>
+              </>
+            ) : (
+              <>
+                <Sparkles size={16} /> 
+                <span>Switch to Ruadhán's Design</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </>
   );
 }

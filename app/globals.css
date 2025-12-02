@@ -8,13 +8,13 @@
 
 :root {
   --foreground-rgb: 254, 254, 254; 
-  --background-start-rgb: 28, 2, 78; /* #1c024e */
-  --background-end-rgb: 28, 2, 78;
+  --background-start-rgb: 53, 44, 71; /* #352c47 (Light Purple) */
+  --background-end-rgb: 53, 44, 71;
 }
 
 body {
   color: #fefefe;
-  background: #1c024e; /* Deep Purple Base */
+  background: #352c47; /* Light Purple Base */
   font-family: 'Inter', sans-serif;
 }
 
