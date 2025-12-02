@@ -161,62 +161,95 @@ interface ThemeConfig {
   accent: string;
   accentLight: string;
   chartMain: string;
+  chartPlannedOpacity: number;
+  chartStrokeWidth: number;
+  chartType: 'monotone' | 'basis' | 'step' | 'linear' | 'natural';
   radius: string;
   shadow: string;
   headerBg: string;
   logoFilter: string;
+  fontFamily: string;
+  filter: string; // CSS Filter for glows
 }
 
 const getTheme = (mode: ThemeMode, design: DesignSystem): ThemeConfig => {
   const isDark = mode === 'dark';
 
-  // Base colors that change with design system
-  let accent = '#1C024E'; // Default Enterprise Purple
-  let radius = 'rounded-xl';
-  let shadow = 'shadow-sm';
+  // --- DESIGN SYSTEM DEFAULTS ---
+  let theme: Partial<ThemeConfig> = {};
 
-  if (design === 'modern') {
-    accent = '#2563eb'; // Bright Blue
-    radius = 'rounded-2xl';
-    shadow = 'shadow-lg shadow-indigo-500/10';
-  } else if (design === 'minimal') {
-    accent = '#10b981'; // Emerald
-    radius = 'rounded-none';
-    shadow = 'shadow-none border-b-2';
+  switch(design) {
+    case 'modern': // "Neon SaaS" - Glows, Glass, Rounded
+      theme = {
+        radius: 'rounded-3xl',
+        shadow: isDark ? 'shadow-[0_0_30px_-5px_rgba(37,99,235,0.3)]' : 'shadow-xl shadow-indigo-100',
+        chartType: 'basis', // Super smooth
+        chartStrokeWidth: 4,
+        chartPlannedOpacity: 0.5,
+        fontFamily: 'font-sans',
+        filter: isDark ? 'drop-shadow(0 0 8px rgba(96,165,250,0.5))' : 'drop-shadow(0 0 4px rgba(37,99,235,0.3))',
+        border: 'border-transparent' // Glass look usually has no hard border
+      };
+      break;
+      
+    case 'minimal': // "Brutalist" - Hard lines, No Shadows, Monospace feel
+      theme = {
+        radius: 'rounded-none',
+        shadow: 'shadow-none',
+        chartType: 'step', // Robot/Engineer feel
+        chartStrokeWidth: 2,
+        chartPlannedOpacity: 1, // Solid dashed line
+        fontFamily: 'font-mono tracking-tight',
+        filter: 'none',
+        border: isDark ? 'border-2 border-slate-700' : 'border-2 border-slate-900'
+      };
+      break;
+
+    default: // "Enterprise" - Clean, Standard (Default)
+      theme = {
+        radius: 'rounded-xl',
+        shadow: 'shadow-sm',
+        chartType: 'natural',
+        chartStrokeWidth: 2,
+        chartPlannedOpacity: 0.3,
+        fontFamily: 'font-sans',
+        filter: 'none',
+        border: isDark ? 'border-slate-800' : 'border-slate-200'
+      };
+      break;
   }
 
-  // Dark/Light overrides
+  // --- COLOR MODES ---
   if (isDark) {
     return {
       bg: 'bg-slate-950',
-      cardBg: 'bg-slate-900',
+      cardBg: design === 'modern' ? 'bg-slate-900/50 backdrop-blur-xl' : 'bg-slate-900',
       textPrimary: 'text-slate-100',
       textSecondary: 'text-slate-400',
-      border: 'border-slate-800',
-      accent: design === 'modern' ? '#60a5fa' : design === 'minimal' ? '#34d399' : '#a78bfa',
+      border: design === 'minimal' ? 'border-2 border-slate-700' : (design === 'modern' ? 'border-white/10' : 'border-slate-800'),
+      accent: design === 'modern' ? '#60a5fa' : design === 'minimal' ? '#ffffff' : '#a78bfa',
       accentLight: 'bg-slate-800',
-      chartMain: design === 'modern' ? '#60a5fa' : design === 'minimal' ? '#34d399' : '#a78bfa',
-      radius,
-      shadow: 'shadow-none',
-      headerBg: 'bg-slate-900',
-      logoFilter: 'invert(1) brightness(2)'
-    };
+      chartMain: design === 'modern' ? '#60a5fa' : design === 'minimal' ? '#ffffff' : '#a78bfa',
+      headerBg: design === 'modern' ? 'bg-slate-950/80 backdrop-blur-md' : 'bg-slate-950',
+      logoFilter: 'invert(1) brightness(2)',
+      ...theme
+    } as ThemeConfig;
   }
 
+  // LIGHT MODE
   return {
-    bg: design === 'modern' ? 'bg-indigo-50/30' : 'bg-slate-50',
-    cardBg: 'bg-white',
+    bg: design === 'modern' ? 'bg-indigo-50/50' : 'bg-slate-50',
+    cardBg: design === 'modern' ? 'bg-white/70 backdrop-blur-xl' : 'bg-white',
     textPrimary: 'text-slate-900',
     textSecondary: 'text-slate-500',
-    border: design === 'minimal' ? 'border-slate-300' : 'border-slate-200',
-    accent,
+    border: design === 'minimal' ? 'border-2 border-slate-900' : (design === 'modern' ? 'border-white/40' : 'border-slate-200'),
+    accent: design === 'modern' ? '#2563eb' : design === 'minimal' ? '#0f172a' : '#1C024E',
     accentLight: design === 'modern' ? 'bg-blue-50' : 'bg-slate-50',
-    chartMain: accent,
-    radius,
-    shadow,
-    headerBg: 'bg-white',
-    logoFilter: 'none'
-  };
+    chartMain: design === 'modern' ? '#2563eb' : design === 'minimal' ? '#0f172a' : '#1C024E',
+    headerBg: design === 'modern' ? 'bg-white/80 backdrop-blur-md' : 'bg-white',
+    logoFilter: 'none',
+    ...theme
+  } as ThemeConfig;
 };
 
 /**
@@ -239,7 +272,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, subValue, trend, icon
     onClick={onClick}
     className={`
       relative overflow-hidden p-5 transition-all duration-300 text-left w-full group
-      ${theme.cardBg} ${theme.radius}
+      ${theme.cardBg} ${theme.radius} ${theme.fontFamily}
       ${isActive 
         ? `ring-2 ring-[${theme.accent}] z-10 scale-[1.02] ${theme.shadow}` 
         : `border ${theme.border} hover:border-[${theme.accent}]/50 ${theme.shadow}`
@@ -252,7 +285,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, subValue, trend, icon
         className={`p-2.5 rounded-lg transition-colors`}
         style={{ 
           backgroundColor: isActive ? theme.accent : undefined,
-          color: isActive ? '#fff' : undefined 
+          color: isActive ? (theme.chartMain === '#ffffff' ? '#000' : '#fff') : undefined 
         }}
       >
         <Icon size={18} className={!isActive ? theme.textSecondary : ''} />
@@ -295,7 +328,7 @@ interface DrillDownTableProps {
 }
 
 const DrillDownTable: React.FC<DrillDownTableProps> = ({ title, icon: Icon, data, total, theme }) => (
-  <div className={`${theme.cardBg} ${theme.radius} border ${theme.border} ${theme.shadow} flex flex-col h-full overflow-hidden`}>
+  <div className={`${theme.cardBg} ${theme.radius} border ${theme.border} ${theme.shadow} ${theme.fontFamily} flex flex-col h-full overflow-hidden`}>
     <div className={`px-4 py-3 border-b ${theme.border} flex items-center justify-between ${theme.accentLight} bg-opacity-30`}>
       <h4 className={`font-bold flex items-center gap-2 text-xs uppercase tracking-wide ${theme.textPrimary}`}>
         <Icon size={14} style={{ color: theme.accent }} /> {title}
@@ -314,7 +347,7 @@ const DrillDownTable: React.FC<DrillDownTableProps> = ({ title, icon: Icon, data
             </div>
             <div className={`w-full rounded-full h-1.5 overflow-hidden ${theme.accentLight}`}>
               <div 
-                className={`h-full rounded-full opacity-80 group-hover:opacity-100 transition-all duration-500`} 
+                className={`h-full ${theme.radius === 'rounded-none' ? 'rounded-none' : 'rounded-full'} opacity-80 group-hover:opacity-100 transition-all duration-500`} 
                 style={{ width: `${total > 0 ? (item.value / total) * 100 : 0}%`, backgroundColor: theme.accent }}
               ></div>
             </div>
@@ -335,7 +368,7 @@ interface CustomTooltipProps {
 const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, theme }) => {
   if (active && payload && payload.length) {
     return (
-      <div className={`${theme.cardBg} p-3 ${theme.radius} shadow-xl border ${theme.border} text-xs`}>
+      <div className={`${theme.cardBg} p-3 ${theme.radius} shadow-xl border ${theme.border} text-xs ${theme.fontFamily} backdrop-blur-md`}>
         <p className={`font-bold mb-2 border-b ${theme.border} pb-1 ${theme.textSecondary}`}>{label}</p>
         {payload.map((entry, index) => (
           <div key={index} className="flex items-center gap-3 mb-1 justify-between">
@@ -491,10 +524,10 @@ export default function SalesDashboard() {
   const config = getChartConfig();
 
   return (
-    <div className={`min-h-screen font-sans transition-colors duration-300 pb-20 ${theme.bg} ${theme.textPrimary}`}>
+    <div className={`min-h-screen transition-colors duration-500 pb-20 ${theme.bg} ${theme.textPrimary} ${theme.fontFamily}`}>
       
       {/* --- HEADER --- */}
-      <header className={`${theme.headerBg} border-b ${theme.border} sticky top-0 z-50 transition-colors duration-300`}>
+      <header className={`${theme.headerBg} border-b ${theme.border} sticky top-0 z-50 transition-all duration-500`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-4">
@@ -539,42 +572,43 @@ export default function SalesDashboard() {
       </header>
 
       {/* --- THEME SWITCHER FLOATING WIDGET --- */}
-      <div className={`fixed bottom-6 right-6 z-50 p-2 ${theme.cardBg} border ${theme.border} shadow-2xl ${theme.radius} flex flex-col gap-2`}>
-        <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg mb-2">
+      <div className={`fixed bottom-6 right-6 z-50 p-3 ${theme.cardBg} border ${theme.border} shadow-2xl ${theme.radius} flex flex-col gap-3 w-48 transition-all duration-300`}>
+        <div className="flex justify-between items-center px-1">
+          <span className="text-[10px] uppercase font-bold text-slate-400">Appearance</span>
+        </div>
+        <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
             <button 
               onClick={() => setMode('light')}
-              className={`p-2 rounded-md transition-all ${mode === 'light' ? 'bg-white shadow text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
-              title="Light Mode"
+              className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-all ${mode === 'light' ? 'bg-white shadow text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
             >
-              <Sun size={16} />
+              Light
             </button>
             <button 
               onClick={() => setMode('dark')}
-              className={`p-2 rounded-md transition-all ${mode === 'dark' ? 'bg-slate-700 shadow text-white' : 'text-slate-400 hover:text-slate-600'}`}
-              title="Dark Mode"
+              className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-all ${mode === 'dark' ? 'bg-slate-700 shadow text-white' : 'text-slate-400 hover:text-slate-600'}`}
             >
-              <Moon size={16} />
+              Dark
             </button>
         </div>
         <div className="space-y-1">
-          <p className="text-[10px] uppercase font-bold text-slate-400 px-2">Design System</p>
+          <span className="text-[10px] uppercase font-bold text-slate-400 px-1">Design System</span>
           <button 
             onClick={() => setDesign('enterprise')}
-            className={`w-full text-left px-3 py-2 text-xs font-medium rounded-md transition-all flex items-center gap-2 ${design === 'enterprise' ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+            className={`w-full text-left px-3 py-2 text-xs font-medium rounded-md transition-all flex items-center gap-2 ${design === 'enterprise' ? 'bg-indigo-50 dark:bg-slate-700 text-indigo-700 dark:text-white ring-1 ring-indigo-500/20' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
           >
             <Layout size={14} /> Enterprise
           </button>
           <button 
             onClick={() => setDesign('modern')}
-            className={`w-full text-left px-3 py-2 text-xs font-medium rounded-md transition-all flex items-center gap-2 ${design === 'modern' ? 'bg-blue-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+            className={`w-full text-left px-3 py-2 text-xs font-medium rounded-md transition-all flex items-center gap-2 ${design === 'modern' ? 'bg-blue-50 dark:bg-slate-700 text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/20' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
           >
-            <Monitor size={14} /> Modern SaaS
+            <Monitor size={14} /> SaaS Neon
           </button>
           <button 
             onClick={() => setDesign('minimal')}
-            className={`w-full text-left px-3 py-2 text-xs font-medium rounded-md transition-all flex items-center gap-2 ${design === 'minimal' ? 'bg-emerald-50 dark:bg-slate-800 text-emerald-600 dark:text-emerald-400' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+            className={`w-full text-left px-3 py-2 text-xs font-medium rounded-md transition-all flex items-center gap-2 ${design === 'minimal' ? 'bg-emerald-50 dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
           >
-            <Layers size={14} /> Minimal
+            <Layers size={14} /> Brutalist
           </button>
         </div>
       </div>
@@ -644,7 +678,7 @@ export default function SalesDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           
           {/* --- MAIN CHART --- */}
-          <div className={`lg:col-span-2 ${theme.cardBg} ${theme.radius} border ${theme.border} ${theme.shadow} p-5 transition-colors duration-300`}>
+          <div className={`lg:col-span-2 ${theme.cardBg} ${theme.radius} border ${theme.border} ${theme.shadow} p-5 transition-all duration-500`}>
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className={`text-lg font-bold flex items-center gap-2 ${theme.textPrimary}`}>
@@ -670,56 +704,79 @@ export default function SalesDashboard() {
                 <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorMain" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={config.color} stopOpacity={0.25}/>
+                      <stop offset="5%" stopColor={config.color} stopOpacity={design === 'minimal' ? 0 : 0.25}/>
                       <stop offset="95%" stopColor={config.color} stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={mode === 'dark' ? '#334155' : '#f1f5f9'} />
+                  
+                  {design !== 'minimal' && (
+                    <CartesianGrid 
+                      strokeDasharray="3 3" 
+                      vertical={false} 
+                      stroke={mode === 'dark' ? '#334155' : '#f1f5f9'} 
+                    />
+                  )}
+
                   <XAxis 
                     dataKey="displayDate" 
                     tick={{ fill: mode === 'dark' ? '#94a3b8' : '#64748b', fontSize: 10, fontWeight: 500 }} 
-                    axisLine={false} 
+                    axisLine={design === 'minimal'} 
                     tickLine={false} 
                     minTickGap={40}
                   />
                   <YAxis 
                     tick={{ fill: mode === 'dark' ? '#94a3b8' : '#64748b', fontSize: 10, fontWeight: 500 }} 
-                    axisLine={false} 
+                    axisLine={design === 'minimal'} 
                     tickLine={false}
                     tickFormatter={(value) => value >= 1000 ? `${(value/1000).toFixed(1)}k` : value}
                   />
                   <Tooltip content={<CustomTooltip theme={theme} />} />
                   
                   <Line 
-                    type="natural" 
+                    type={theme.chartType} 
                     dataKey={config.planned} 
                     stroke={config.color} 
                     strokeDasharray="4 4" 
-                    strokeWidth={2}
+                    strokeWidth={design === 'minimal' ? 2 : 2}
                     dot={false}
-                    opacity={0.3}
+                    opacity={theme.chartPlannedOpacity}
                     name="Goal"
                     activeDot={false}
                     isAnimationActive={true}
                   />
                   
-                  <Area 
-                    type="monotone" 
-                    dataKey={config.actual} 
-                    stroke={config.color} 
-                    strokeWidth={2}
-                    fillOpacity={1} 
-                    fill="url(#colorMain)" 
-                    name="Actual"
-                    animationDuration={1000}
-                  />
+                  {design === 'minimal' ? (
+                     // Minimal Mode: Only Line, No Area
+                     <Line 
+                       type={theme.chartType}
+                       dataKey={config.actual}
+                       stroke={config.color}
+                       strokeWidth={theme.chartStrokeWidth}
+                       dot={false}
+                       activeDot={{ r: 4, fill: config.color }}
+                       name="Actual"
+                     />
+                  ) : (
+                     // Standard/Modern Mode: Area + Glow
+                     <Area 
+                       type={theme.chartType} 
+                       dataKey={config.actual} 
+                       stroke={config.color} 
+                       strokeWidth={theme.chartStrokeWidth}
+                       fillOpacity={1} 
+                       fill="url(#colorMain)" 
+                       name="Actual"
+                       style={{ filter: theme.filter }} // APPLIES GLOW IN MODERN MODE
+                       animationDuration={1000}
+                     />
+                  )}
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
           </div>
 
           {/* --- TTL CHART --- */}
-          <div className={`${theme.cardBg} ${theme.radius} border ${theme.border} ${theme.shadow} p-5 flex flex-col transition-colors duration-300`}>
+          <div className={`${theme.cardBg} ${theme.radius} border ${theme.border} ${theme.shadow} p-5 flex flex-col transition-all duration-500`}>
             <div className={`mb-4 pb-4 border-b ${theme.border}`}>
                <h3 className={`font-bold flex items-center gap-2 text-sm uppercase tracking-wide ${theme.textPrimary}`}>
                  <Zap size={16} className="text-amber-500 fill-amber-500" /> Speed to Lead
@@ -749,11 +806,14 @@ export default function SalesDashboard() {
                     cursor={{fill: mode === 'dark' ? '#334155' : '#f8fafc'}} 
                     contentStyle={{ borderRadius: '8px', border: 'none' }} 
                   />
-                  <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20}>
+                  <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={design === 'minimal' ? 30 : 20}>
                     {ttlConfig.data.map((entry, index) => (
                       <Cell 
                         key={`cell-${index}`} 
                         fill={index < 2 ? '#10b981' : index === 2 ? '#fbbf24' : mode === 'dark' ? '#475569' : '#e2e8f0'} 
+                        // Brutalist Stroke in Minimal Mode
+                        stroke={design === 'minimal' ? (mode === 'dark' ? '#fff' : '#000') : 'none'}
+                        strokeWidth={design === 'minimal' ? 1 : 0}
                       />
                     ))}
                   </Bar>
@@ -761,8 +821,8 @@ export default function SalesDashboard() {
               </ResponsiveContainer>
             </div>
             
-            <div className={`mt-2 rounded p-3 border border-amber-500/20 bg-amber-500/10`}>
-               <div className="flex items-start gap-2 text-[10px] text-amber-600 dark:text-amber-400">
+            <div className={`mt-2 rounded p-3 ${design === 'minimal' ? 'border-2 border-amber-500 text-amber-600 bg-transparent' : 'border border-amber-500/20 bg-amber-500/10'}`}>
+               <div className={`flex items-start gap-2 text-[10px] ${design === 'minimal' ? 'text-amber-700 dark:text-amber-400 font-bold' : 'text-amber-600 dark:text-amber-400'}`}>
                  <Zap size={12} className="mt-0.5 shrink-0" />
                  <p className="leading-tight"><strong>Insight:</strong> Faster response times consistently correlate with higher {ttlConfig.label} volume.</p>
                </div>
