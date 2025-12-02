@@ -8,7 +8,8 @@ import {
 import { 
   Mail, MessageSquare, Target, Trophy, XOctagon, 
   Calendar, ChevronDown, Filter, ArrowUpRight, ArrowDownRight,
-  Zap, Users, Bell, Globe, Server, Layers
+  Zap, Users, Bell, Globe, Server, Layers,
+  Palette, Moon, Sun, Monitor, Layout
 } from 'lucide-react';
 
 /**
@@ -35,7 +36,7 @@ interface RowData {
   planned_mqls: number;
   planned_sqls: number;
   planned_bounces: number;
-  [key: string]: string | number; // Allow dynamic access
+  [key: string]: string | number;
 }
 
 interface AggregatedDay {
@@ -74,7 +75,7 @@ const SEGMENTS = {
 
 const generateRawCSVData = (): RowData[] => {
   const rows: RowData[] = [];
-  const anchorDate = new Date('2024-10-25T12:00:00'); // Late Oct anchor
+  const anchorDate = new Date('2024-10-25T12:00:00'); 
 
   for (let i = 120; i >= 0; i--) {
     const currentDate = new Date(anchorDate);
@@ -145,6 +146,80 @@ const generateRawCSVData = (): RowData[] => {
 };
 
 /**
+ * --- THEME ENGINE ---
+ */
+
+type ThemeMode = 'light' | 'dark';
+type DesignSystem = 'enterprise' | 'modern' | 'minimal';
+
+interface ThemeConfig {
+  bg: string;
+  cardBg: string;
+  textPrimary: string;
+  textSecondary: string;
+  border: string;
+  accent: string;
+  accentLight: string;
+  chartMain: string;
+  radius: string;
+  shadow: string;
+  headerBg: string;
+  logoFilter: string;
+}
+
+const getTheme = (mode: ThemeMode, design: DesignSystem): ThemeConfig => {
+  const isDark = mode === 'dark';
+
+  // Base colors that change with design system
+  let accent = '#1C024E'; // Default Enterprise Purple
+  let radius = 'rounded-xl';
+  let shadow = 'shadow-sm';
+
+  if (design === 'modern') {
+    accent = '#2563eb'; // Bright Blue
+    radius = 'rounded-2xl';
+    shadow = 'shadow-lg shadow-indigo-500/10';
+  } else if (design === 'minimal') {
+    accent = '#10b981'; // Emerald
+    radius = 'rounded-none';
+    shadow = 'shadow-none border-b-2';
+  }
+
+  // Dark/Light overrides
+  if (isDark) {
+    return {
+      bg: 'bg-slate-950',
+      cardBg: 'bg-slate-900',
+      textPrimary: 'text-slate-100',
+      textSecondary: 'text-slate-400',
+      border: 'border-slate-800',
+      accent: design === 'modern' ? '#60a5fa' : design === 'minimal' ? '#34d399' : '#a78bfa',
+      accentLight: 'bg-slate-800',
+      chartMain: design === 'modern' ? '#60a5fa' : design === 'minimal' ? '#34d399' : '#a78bfa',
+      radius,
+      shadow: 'shadow-none',
+      headerBg: 'bg-slate-900',
+      logoFilter: 'invert(1) brightness(2)'
+    };
+  }
+
+  return {
+    bg: design === 'modern' ? 'bg-indigo-50/30' : 'bg-slate-50',
+    cardBg: 'bg-white',
+    textPrimary: 'text-slate-900',
+    textSecondary: 'text-slate-500',
+    border: design === 'minimal' ? 'border-slate-300' : 'border-slate-200',
+    accent,
+    accentLight: design === 'modern' ? 'bg-blue-50' : 'bg-slate-50',
+    chartMain: accent,
+    radius,
+    shadow,
+    headerBg: 'bg-white',
+    logoFilter: 'none'
+  };
+};
+
+/**
  * --- COMPONENTS ---
  */
 
@@ -156,40 +231,52 @@ interface StatCardProps {
   icon: React.ElementType;
   isActive: boolean;
   onClick: () => void;
+  theme: ThemeConfig;
 }
 
-const StatCard: React.FC<StatCardProps> = ({ title, value, subValue, trend, icon: Icon, isActive, onClick }) => (
+const StatCard: React.FC<StatCardProps> = ({ title, value, subValue, trend, icon: Icon, isActive, onClick, theme }) => (
   <button 
     onClick={onClick}
     className={`
-      relative overflow-hidden p-5 rounded-xl transition-all duration-300 text-left w-full group
+      relative overflow-hidden p-5 transition-all duration-300 text-left w-full group
+      ${theme.cardBg} ${theme.radius}
       ${isActive 
-        ? 'bg-white ring-2 ring-[#1C024E] shadow-xl scale-[1.02] z-10' 
-        : 'bg-white border border-slate-100 shadow-sm hover:shadow-md hover:border-indigo-100'
+        ? `ring-2 ring-[${theme.accent}] z-10 scale-[1.02] ${theme.shadow}` 
+        : `border ${theme.border} hover:border-[${theme.accent}]/50 ${theme.shadow}`
       }
     `}
+    style={{ borderColor: isActive ? theme.accent : undefined }}
   >
     <div className="flex justify-between items-start mb-3">
-      <div className={`p-2.5 rounded-lg transition-colors ${isActive ? 'bg-[#1C024E] text-white' : 'bg-slate-50 text-slate-500 group-hover:bg-slate-100'}`}>
-        <Icon size={18} />
+      <div 
+        className={`p-2.5 rounded-lg transition-colors`}
+        style={{ 
+          backgroundColor: isActive ? theme.accent : undefined,
+          color: isActive ? '#fff' : undefined 
+        }}
+      >
+        <Icon size={18} className={!isActive ? theme.textSecondary : ''} />
       </div>
       {trend && (
-        <span className={`flex items-center text-[11px] font-bold px-2 py-0.5 rounded-full ${parseFloat(trend) > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+        <span className={`flex items-center text-[11px] font-bold px-2 py-0.5 rounded-full ${parseFloat(trend) > 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
           {parseFloat(trend) > 0 ? <ArrowUpRight size={12} className="mr-1"/> : <ArrowDownRight size={12} className="mr-1"/>}
           {Math.abs(parseFloat(trend))}%
         </span>
       )}
     </div>
     <div>
-      <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">{title}</p>
-      <h3 className="text-2xl font-bold text-slate-900 mt-1 tracking-tight">{value}</h3>
+      <p className={`text-[10px] font-bold uppercase tracking-widest ${theme.textSecondary}`}>{title}</p>
+      <h3 className={`text-2xl font-bold mt-1 tracking-tight ${theme.textPrimary}`}>{value}</h3>
       <div className="flex items-center mt-1.5 gap-2">
-         <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wide">Goal</span>
-         <span className="text-[11px] font-semibold text-slate-600">{subValue}</span>
+         <span className={`text-[10px] font-medium uppercase tracking-wide ${theme.textSecondary}`}>Goal</span>
+         <span className={`text-[11px] font-semibold ${theme.textPrimary}`}>{subValue}</span>
       </div>
     </div>
     {isActive && (
-      <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-[#1C024E] to-purple-500" />
+      <div 
+        className="absolute bottom-0 left-0 w-full h-1" 
+        style={{ background: `linear-gradient(90deg, ${theme.accent}, transparent)` }} 
+      />
     )}
   </button>
 );
@@ -204,13 +291,14 @@ interface DrillDownTableProps {
   icon: React.ElementType;
   data: DrillDownItem[];
   total: number;
+  theme: ThemeConfig;
 }
 
-const DrillDownTable: React.FC<DrillDownTableProps> = ({ title, icon: Icon, data, total }) => (
-  <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col h-full overflow-hidden">
-    <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-      <h4 className="font-bold text-slate-800 flex items-center gap-2 text-xs uppercase tracking-wide">
-        <Icon size={14} className="text-[#1C024E]" /> {title}
+const DrillDownTable: React.FC<DrillDownTableProps> = ({ title, icon: Icon, data, total, theme }) => (
+  <div className={`${theme.cardBg} ${theme.radius} border ${theme.border} ${theme.shadow} flex flex-col h-full overflow-hidden`}>
+    <div className={`px-4 py-3 border-b ${theme.border} flex items-center justify-between ${theme.accentLight} bg-opacity-30`}>
+      <h4 className={`font-bold flex items-center gap-2 text-xs uppercase tracking-wide ${theme.textPrimary}`}>
+        <Icon size={14} style={{ color: theme.accent }} /> {title}
       </h4>
     </div>
     <div className="p-4 flex-1 overflow-y-auto max-h-[250px] scrollbar-thin scrollbar-thumb-slate-200">
@@ -218,16 +306,16 @@ const DrillDownTable: React.FC<DrillDownTableProps> = ({ title, icon: Icon, data
         {data.map((item, idx) => (
           <div key={idx} className="group">
             <div className="flex justify-between text-xs mb-1.5">
-              <span className="font-semibold text-slate-700">{item.name}</span>
+              <span className={`font-semibold ${theme.textPrimary}`}>{item.name}</span>
               <div className="text-right">
-                <span className="font-mono font-bold text-slate-800">{item.value.toLocaleString()}</span>
-                <span className="text-slate-400 ml-1 text-[10px]">({total > 0 ? ((item.value / total) * 100).toFixed(1) : 0}%)</span>
+                <span className={`font-mono font-bold ${theme.textPrimary}`}>{item.value.toLocaleString()}</span>
+                <span className={`ml-1 text-[10px] ${theme.textSecondary}`}>({total > 0 ? ((item.value / total) * 100).toFixed(1) : 0}%)</span>
               </div>
             </div>
-            <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+            <div className={`w-full rounded-full h-1.5 overflow-hidden ${theme.accentLight}`}>
               <div 
-                className="bg-[#1C024E] h-full rounded-full opacity-80 group-hover:opacity-100 transition-all duration-500" 
-                style={{ width: `${total > 0 ? (item.value / total) * 100 : 0}%` }}
+                className={`h-full rounded-full opacity-80 group-hover:opacity-100 transition-all duration-500`} 
+                style={{ width: `${total > 0 ? (item.value / total) * 100 : 0}%`, backgroundColor: theme.accent }}
               ></div>
             </div>
           </div>
@@ -237,25 +325,25 @@ const DrillDownTable: React.FC<DrillDownTableProps> = ({ title, icon: Icon, data
   </div>
 );
 
-// Explicitly type the Recharts CustomTooltip props
 interface CustomTooltipProps {
   active?: boolean;
   payload?: any[];
   label?: string;
+  theme: ThemeConfig;
 }
 
-const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
+const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, theme }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white/95 backdrop-blur text-slate-800 p-3 rounded-lg shadow-xl border border-slate-100 text-xs">
-        <p className="font-bold mb-2 text-slate-400 border-b border-slate-100 pb-1">{label}</p>
+      <div className={`${theme.cardBg} p-3 ${theme.radius} shadow-xl border ${theme.border} text-xs`}>
+        <p className={`font-bold mb-2 border-b ${theme.border} pb-1 ${theme.textSecondary}`}>{label}</p>
         {payload.map((entry, index) => (
           <div key={index} className="flex items-center gap-3 mb-1 justify-between">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.stroke || entry.fill }} />
-              <span className="capitalize text-slate-600 font-medium">{entry.name}:</span>
+              <span className={`capitalize font-medium ${theme.textSecondary}`}>{entry.name}:</span>
             </div>
-            <span className="font-mono font-bold text-slate-900">{entry.value.toLocaleString()}</span>
+            <span className={`font-mono font-bold ${theme.textPrimary}`}>{entry.value.toLocaleString()}</span>
           </div>
         ))}
       </div>
@@ -268,6 +356,13 @@ export default function SalesDashboard() {
   const [activeMetric, setActiveMetric] = useState<string>('meetings_booked'); 
   const [rawData, setRawData] = useState<RowData[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  
+  // Theme State
+  const [mode, setMode] = useState<ThemeMode>('light');
+  const [design, setDesign] = useState<DesignSystem>('enterprise');
+
+  // Computed Theme
+  const theme = useMemo(() => getTheme(mode, design), [mode, design]);
 
   // Initialize Raw Data
   useEffect(() => {
@@ -380,63 +475,119 @@ export default function SalesDashboard() {
   }, [rawData, activeMetric]);
 
   const getChartConfig = () => {
+    // Dynamic colors based on theme accent unless strictly defined
+    const baseColor = theme.chartMain;
+    
     switch (activeMetric) {
-      case 'emails_sent': return { actual: 'emails_sent', planned: 'planned_sent', color: '#1C024E', label: 'Emails Sent' };
+      case 'emails_sent': return { actual: 'emails_sent', planned: 'planned_sent', color: baseColor, label: 'Emails Sent' };
       case 'replies': return { actual: 'replies', planned: 'planned_replies', color: '#3b82f6', label: 'Replies' };
       case 'positive_replies': return { actual: 'positive_replies', planned: 'planned_mqls', color: '#8b5cf6', label: 'MQLs (Positive)' };
       case 'meetings_booked': return { actual: 'meetings_booked', planned: 'planned_sqls', color: '#10b981', label: 'SQLs (Meetings)' };
       case 'bounces': return { actual: 'bounces', planned: 'planned_bounces', color: '#f43f5e', label: 'Bounces' };
-      default: return { actual: 'emails_sent', planned: 'planned_sent', color: '#1C024E', label: 'Emails Sent' };
+      default: return { actual: 'emails_sent', planned: 'planned_sent', color: baseColor, label: 'Emails Sent' };
     }
   };
 
   const config = getChartConfig();
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-20">
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
+    <div className={`min-h-screen font-sans transition-colors duration-300 pb-20 ${theme.bg} ${theme.textPrimary}`}>
+      
+      {/* --- HEADER --- */}
+      <header className={`${theme.headerBg} border-b ${theme.border} sticky top-0 z-50 transition-colors duration-300`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                  {/* Replaced img tag with explicit path or use text fallback if image missing */}
-                 <img src="/logo.png" alt="GTMA Logo" className="h-10 w-auto object-contain" onError={(e) => { e.currentTarget.style.display='none'; }} />
+                 <img 
+                   src="/logo.png" 
+                   alt="GTMA Logo" 
+                   className="h-10 w-auto object-contain transition-all duration-300"
+                   style={{ filter: theme.logoFilter }}
+                   onError={(e) => { e.currentTarget.style.display='none'; }} 
+                 />
                  <div className="h-6 w-px bg-slate-200 mx-2"></div>
               </div>
               
-              <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 min-w-[160px]">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#1C024E] to-indigo-700 flex items-center justify-center text-white text-xs font-bold ring-2 ring-indigo-50 shadow-sm shrink-0">
+              <div className={`flex items-center gap-2 ${theme.cardBg} border ${theme.border} rounded-lg px-3 py-1.5 min-w-[160px]`}>
+                  <div 
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold ring-2 shadow-sm shrink-0"
+                    style={{ background: theme.accent, borderColor: theme.bg }}
+                  >
                     J
                   </div>
                   <div className="flex-1">
-                    <span className="block font-bold text-slate-800 leading-none text-xs">Joiners</span>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Growth Acct.</span>
+                    <span className={`block font-bold leading-none text-xs ${theme.textPrimary}`}>Joiners</span>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${theme.textSecondary}`}>Growth Acct.</span>
                   </div>
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-             <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-md px-3 py-1.5 text-sm text-slate-600 cursor-pointer hover:border-[#1C024E] shadow-sm transition-colors">
-               <Calendar size={14} className="text-[#1C024E]"/>
-               <span className="font-semibold text-xs">Last 120 Days</span>
-               <ChevronDown size={14} className="text-slate-400"/>
+             <div className={`flex items-center gap-2 ${theme.cardBg} border ${theme.border} ${theme.radius} px-3 py-1.5 text-sm cursor-pointer shadow-sm transition-colors`}>
+               <Calendar size={14} style={{ color: theme.accent }}/>
+               <span className={`font-semibold text-xs ${theme.textSecondary}`}>Last 120 Days</span>
+               <ChevronDown size={14} className={theme.textSecondary}/>
              </div>
-             <button className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:text-[#1C024E]">
+             <button className={`h-8 w-8 rounded-full ${theme.accentLight} flex items-center justify-center ${theme.textSecondary}`}>
                <Bell size={16} />
              </button>
           </div>
         </div>
       </header>
 
+      {/* --- THEME SWITCHER FLOATING WIDGET --- */}
+      <div className={`fixed bottom-6 right-6 z-50 p-2 ${theme.cardBg} border ${theme.border} shadow-2xl ${theme.radius} flex flex-col gap-2`}>
+        <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg mb-2">
+            <button 
+              onClick={() => setMode('light')}
+              className={`p-2 rounded-md transition-all ${mode === 'light' ? 'bg-white shadow text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
+              title="Light Mode"
+            >
+              <Sun size={16} />
+            </button>
+            <button 
+              onClick={() => setMode('dark')}
+              className={`p-2 rounded-md transition-all ${mode === 'dark' ? 'bg-slate-700 shadow text-white' : 'text-slate-400 hover:text-slate-600'}`}
+              title="Dark Mode"
+            >
+              <Moon size={16} />
+            </button>
+        </div>
+        <div className="space-y-1">
+          <p className="text-[10px] uppercase font-bold text-slate-400 px-2">Design System</p>
+          <button 
+            onClick={() => setDesign('enterprise')}
+            className={`w-full text-left px-3 py-2 text-xs font-medium rounded-md transition-all flex items-center gap-2 ${design === 'enterprise' ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+          >
+            <Layout size={14} /> Enterprise
+          </button>
+          <button 
+            onClick={() => setDesign('modern')}
+            className={`w-full text-left px-3 py-2 text-xs font-medium rounded-md transition-all flex items-center gap-2 ${design === 'modern' ? 'bg-blue-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+          >
+            <Monitor size={14} /> Modern SaaS
+          </button>
+          <button 
+            onClick={() => setDesign('minimal')}
+            className={`w-full text-left px-3 py-2 text-xs font-medium rounded-md transition-all flex items-center gap-2 ${design === 'minimal' ? 'bg-emerald-50 dark:bg-slate-800 text-emerald-600 dark:text-emerald-400' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+          >
+            <Layers size={14} /> Minimal
+          </button>
+        </div>
+      </div>
+
       {isLoading ? (
-         <div className="min-h-[calc(100vh-64px)] flex flex-col items-center justify-center bg-slate-50">
-           <div className="w-8 h-8 border-4 border-[#1C024E] border-t-transparent rounded-full animate-spin mb-4"></div>
-           <p className="text-sm font-medium text-slate-500 animate-pulse">Syncing data for Joiners...</p>
+         <div className="min-h-[calc(100vh-64px)] flex flex-col items-center justify-center">
+           <div className="w-8 h-8 border-4 border-t-transparent rounded-full animate-spin mb-4" style={{ borderColor: theme.accent, borderTopColor: 'transparent' }}></div>
+           <p className={`text-sm font-medium ${theme.textSecondary} animate-pulse`}>Syncing data for Joiners...</p>
          </div>
       ) : (
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
         
+        {/* --- KPI SCORECARDS --- */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
           <StatCard 
             title="Emails Sent" 
@@ -446,6 +597,7 @@ export default function SalesDashboard() {
             icon={Mail}
             isActive={activeMetric === 'emails_sent'}
             onClick={() => setActiveMetric('emails_sent')}
+            theme={theme}
           />
           <StatCard 
             title="Replied" 
@@ -455,6 +607,7 @@ export default function SalesDashboard() {
             icon={MessageSquare}
             isActive={activeMetric === 'replies'}
             onClick={() => setActiveMetric('replies')}
+            theme={theme}
           />
           <StatCard 
             title="MQLs (Positive)" 
@@ -464,6 +617,7 @@ export default function SalesDashboard() {
             icon={Target}
             isActive={activeMetric === 'positive_replies'}
             onClick={() => setActiveMetric('positive_replies')}
+            theme={theme}
           />
           <StatCard 
             title="SQLs (Meetings)" 
@@ -473,6 +627,7 @@ export default function SalesDashboard() {
             icon={Trophy}
             isActive={activeMetric === 'meetings_booked'}
             onClick={() => setActiveMetric('meetings_booked')}
+            theme={theme}
           />
           <StatCard 
             title="Bounces" 
@@ -482,28 +637,30 @@ export default function SalesDashboard() {
             icon={XOctagon}
             isActive={activeMetric === 'bounces'}
             onClick={() => setActiveMetric('bounces')}
+            theme={theme}
           />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           
-          <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+          {/* --- MAIN CHART --- */}
+          <div className={`lg:col-span-2 ${theme.cardBg} ${theme.radius} border ${theme.border} ${theme.shadow} p-5 transition-colors duration-300`}>
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  Campaign Velocity: <span className="text-[#1C024E]">{config.label}</span>
+                <h2 className={`text-lg font-bold flex items-center gap-2 ${theme.textPrimary}`}>
+                  Campaign Velocity: <span style={{ color: theme.accent }}>{config.label}</span>
                 </h2>
-                <p className="text-slate-400 text-xs mt-1 font-medium">Comparing Actual Results (Area) vs. Strategic Plan (Dashed)</p>
+                <p className={`text-xs mt-1 font-medium ${theme.textSecondary}`}>Comparing Actual Results (Area) vs. Strategic Plan (Dashed)</p>
               </div>
-              <div className="flex items-center gap-4 text-xs font-medium bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
+              <div className={`flex items-center gap-4 text-xs font-medium px-3 py-2 rounded-lg border ${theme.border} ${theme.bg}`}>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-6 h-0.5 border-t-2 border-dashed border-[#1C024E] opacity-40"></span>
-                  <span className="text-slate-500">Goal</span>
+                  <span className="w-6 h-0.5 border-t-2 border-dashed opacity-40" style={{ borderColor: theme.accent }}></span>
+                  <span className={theme.textSecondary}>Goal</span>
                 </div>
-                <div className="h-3 w-px bg-slate-200"></div>
+                <div className={`h-3 w-px bg-slate-200 dark:bg-slate-700`}></div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-full bg-[#1C024E]"></span>
-                  <span className="text-slate-800">Actual</span>
+                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: theme.accent }}></span>
+                  <span className={theme.textPrimary}>Actual</span>
                 </div>
               </div>
             </div>
@@ -513,25 +670,25 @@ export default function SalesDashboard() {
                 <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorMain" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={config.color} stopOpacity={0.15}/>
+                      <stop offset="5%" stopColor={config.color} stopOpacity={0.25}/>
                       <stop offset="95%" stopColor={config.color} stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={mode === 'dark' ? '#334155' : '#f1f5f9'} />
                   <XAxis 
                     dataKey="displayDate" 
-                    tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 500 }} 
+                    tick={{ fill: mode === 'dark' ? '#94a3b8' : '#64748b', fontSize: 10, fontWeight: 500 }} 
                     axisLine={false} 
                     tickLine={false} 
                     minTickGap={40}
                   />
                   <YAxis 
-                    tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 500 }} 
+                    tick={{ fill: mode === 'dark' ? '#94a3b8' : '#64748b', fontSize: 10, fontWeight: 500 }} 
                     axisLine={false} 
                     tickLine={false}
                     tickFormatter={(value) => value >= 1000 ? `${(value/1000).toFixed(1)}k` : value}
                   />
-                  <Tooltip content={<CustomTooltip />} />
+                  <Tooltip content={<CustomTooltip theme={theme} />} />
                   
                   <Line 
                     type="natural" 
@@ -561,12 +718,13 @@ export default function SalesDashboard() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex flex-col">
-            <div className="mb-4 pb-4 border-b border-slate-50">
-               <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wide">
+          {/* --- TTL CHART --- */}
+          <div className={`${theme.cardBg} ${theme.radius} border ${theme.border} ${theme.shadow} p-5 flex flex-col transition-colors duration-300`}>
+            <div className={`mb-4 pb-4 border-b ${theme.border}`}>
+               <h3 className={`font-bold flex items-center gap-2 text-sm uppercase tracking-wide ${theme.textPrimary}`}>
                  <Zap size={16} className="text-amber-500 fill-amber-500" /> Speed to Lead
                </h3>
-               <p className="text-[11px] text-slate-400 mt-1 font-medium">
+               <p className={`text-[11px] mt-1 font-medium ${theme.textSecondary}`}>
                  {ttlConfig.label} broken down by <strong>Response Time</strong>.
                </p>
             </div>
@@ -583,19 +741,19 @@ export default function SalesDashboard() {
                     type="category" 
                     dataKey="name" 
                     width={70} 
-                    tick={{ fontSize: 10, fill: '#64748b', fontWeight: 600 }} 
+                    tick={{ fontSize: 10, fill: mode === 'dark' ? '#94a3b8' : '#64748b', fontWeight: 600 }} 
                     axisLine={false} 
                     tickLine={false} 
                   />
                   <Tooltip 
-                    cursor={{fill: '#f8fafc'}} 
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} 
+                    cursor={{fill: mode === 'dark' ? '#334155' : '#f8fafc'}} 
+                    contentStyle={{ borderRadius: '8px', border: 'none' }} 
                   />
                   <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20}>
                     {ttlConfig.data.map((entry, index) => (
                       <Cell 
                         key={`cell-${index}`} 
-                        fill={index < 2 ? '#10b981' : index === 2 ? '#fbbf24' : '#e2e8f0'} 
+                        fill={index < 2 ? '#10b981' : index === 2 ? '#fbbf24' : mode === 'dark' ? '#475569' : '#e2e8f0'} 
                       />
                     ))}
                   </Bar>
@@ -603,8 +761,8 @@ export default function SalesDashboard() {
               </ResponsiveContainer>
             </div>
             
-            <div className="mt-2 bg-amber-50 rounded p-3 border border-amber-100">
-               <div className="flex items-start gap-2 text-[10px] text-amber-800">
+            <div className={`mt-2 rounded p-3 border border-amber-500/20 bg-amber-500/10`}>
+               <div className="flex items-start gap-2 text-[10px] text-amber-600 dark:text-amber-400">
                  <Zap size={12} className="mt-0.5 shrink-0" />
                  <p className="leading-tight"><strong>Insight:</strong> Faster response times consistently correlate with higher {ttlConfig.label} volume.</p>
                </div>
@@ -612,8 +770,8 @@ export default function SalesDashboard() {
           </div>
         </div>
 
-        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2 px-1">
-          <Filter size={12} /> Data Attribution: <span className="text-[#1C024E]">{config.label}</span>
+        <h3 className={`text-xs font-bold uppercase tracking-widest mb-4 flex items-center gap-2 px-1 ${theme.textSecondary}`}>
+          <Filter size={12} /> Data Attribution: <span style={{ color: theme.accent }}>{config.label}</span>
         </h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -622,24 +780,28 @@ export default function SalesDashboard() {
              icon={Server} 
              data={inboxStats.data} 
              total={inboxStats.total}
+             theme={theme}
            />
            <DrillDownTable 
              title="Region" 
              icon={Globe} 
              data={regionStats.data} 
              total={regionStats.total}
+             theme={theme}
            />
            <DrillDownTable 
              title="Persona" 
              icon={Users} 
              data={personaStats.data} 
              total={personaStats.total}
+             theme={theme}
            />
            <DrillDownTable 
              title="Campaign" 
              icon={Layers} 
              data={campaignStats.data} 
              total={campaignStats.total}
+             theme={theme}
            />
         </div>
 
