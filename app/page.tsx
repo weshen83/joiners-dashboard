@@ -7,7 +7,7 @@ import {
 } from 'recharts';
 import { 
   Calendar, ChevronDown, Filter, ArrowUpRight, ArrowDownRight,
-  Bell, Globe, Server, Layers, Users
+  Bell, Globe, Server, Layers, Users, Palette, Sparkles, Gem, Sun
 } from 'lucide-react';
 
 /**
@@ -144,34 +144,105 @@ const generateRawCSVData = (): RowData[] => {
 };
 
 /**
- * --- THEME CONFIG (LOCKED TO ENHANCED UI) ---
+ * --- THEME CONFIG ---
  */
 
-const THEME = {
-  // App Colors
-  appBg: 'bg-[#352c47]', // Light Purple
-  cardBg: 'bg-[#1c024e]', // Dark Purple
-  
-  // Header Colors (White Header Requested)
-  headerBg: 'bg-white border-b border-slate-200', 
-  headerText: 'text-[#1c024e]', // Dark text for contrast on white header
-  
-  // Elements
-  borderColor: 'border-white/10',
-  radius: 'rounded-2xl',
-  drillText: 'text-indigo-200', 
-  shadow: 'shadow-2xl shadow-black/30',
-  chartOpacity: 0.15,
-  accentColor: '#fefefe', // White accent for charts
-  
-  // Fonts
-  fontHead: 'font-[family-name:var(--font-playfair-display),serif]',
-  textColor: 'text-[#fefefe]' // Main body text (white)
+interface ThemeConfig {
+  name: string;
+  appBg: string;
+  cardBg: string;
+  headerBg: string;
+  borderColor: string;
+  radius: string;
+  drillText: string;
+  isGlass: boolean;
+  shadow: string;
+  chartOpacity: number;
+  accentColor: string; // Dynamic accent for charts/buttons
+  fontHead: string;    // Dynamic font family for headers
+  textColor: string;   // Dynamic text color (some themes might need dark text)
+}
+
+// 4 Design Modes
+const getTheme = (mode: 'ruadhan' | 'best' | 'joinrs' | 'orange'): ThemeConfig => {
+  switch (mode) {
+    case 'joinrs': // Client Brand (White BG, Orange Cards)
+      return {
+        name: 'Joinrs Brand',
+        appBg: 'bg-[#FFFFFF]', // White Background
+        cardBg: 'bg-[#FA4B19]', // Orange Cards
+        headerBg: 'bg-[#FFFFFF] border-b border-gray-200', // White Header
+        borderColor: 'border-white/20',
+        radius: 'rounded-xl', 
+        drillText: 'text-white', // Text inside orange cards should be white
+        isGlass: false,
+        shadow: 'shadow-xl shadow-[#FA4B19]/20', // Orange shadow
+        chartOpacity: 0.2,
+        accentColor: '#2D1E46', // Purple Accent (for active states/charts)
+        fontHead: 'font-[family-name:var(--font-museo-moderno),sans-serif]',
+        textColor: 'text-[#2D1E46]' // Dark Purple text on White BG (Header/App)
+      };
+    case 'orange': // NEW: Orange BG, White Header
+      return {
+        name: 'Joinrs Orange',
+        appBg: 'bg-[#FA4B19]', // Orange Background
+        cardBg: 'bg-[#2D1E46]', // Dark Purple Cards (standard for dark mode feel)
+        headerBg: 'bg-[#FFFFFF] border-b border-gray-200', // White Header (Requested)
+        borderColor: 'border-white/10',
+        radius: 'rounded-xl', 
+        drillText: 'text-white/80',
+        isGlass: false,
+        shadow: 'shadow-none',
+        chartOpacity: 0.3,
+        accentColor: '#FFFFFF', // White Accent on Dark Cards
+        fontHead: 'font-[family-name:var(--font-museo-moderno),sans-serif]',
+        textColor: 'text-white' // Text on Orange BG might need tweak, but cards are dark so white works inside. Header needs manual override.
+      };
+    case 'best': // Enhanced Ruadhan
+      return {
+        name: 'Enhanced UI',
+        appBg: 'bg-[#352c47]',
+        cardBg: 'bg-[#1c024e]', 
+        headerBg: 'bg-[#1c024e]/90 backdrop-blur-md',
+        borderColor: 'border-white/10',
+        radius: 'rounded-2xl',
+        drillText: 'text-indigo-200', 
+        isGlass: true,
+        shadow: 'shadow-2xl shadow-black/30',
+        chartOpacity: 0.15,
+        accentColor: '#fefefe', // White accent
+        fontHead: 'font-[family-name:var(--font-playfair-display),serif]',
+        textColor: 'text-[#fefefe]'
+      };
+    case 'ruadhan': // Strict Instructions
+    default:
+      return {
+        name: 'Ruadhán Strict',
+        appBg: 'bg-[#352c47]',
+        cardBg: 'bg-[#1c024e]', // Default card BG
+        headerBg: 'bg-[#1c024e]',
+        borderColor: 'border-white/5',
+        radius: 'rounded-lg', 
+        drillText: 'text-[#d8d4e3]',
+        isGlass: false,
+        shadow: 'shadow-none',
+        chartOpacity: 0.3,
+        accentColor: '#fefefe',
+        fontHead: 'font-[family-name:var(--font-playfair-display),serif]',
+        textColor: 'text-[#fefefe]'
+      };
+  }
 };
 
+// Colors from Palette (Generic Reference)
 const PALETTE = {
+  purpleDark: '#1c024e',
+  purpleLight: '#352c47',
   green: '#077005',
-  red: '#700805'
+  red: '#700805',
+  white: '#fefefe',
+  joinrsOrange: '#FA4B19',
+  joinrsPurple: '#2D1E46'
 };
 
 /**
@@ -186,37 +257,60 @@ interface StatCardProps {
   isActive: boolean;
   onClick: () => void;
   bgColor?: string; 
+  theme: ThemeConfig;
 }
 
-const StatCard: React.FC<StatCardProps> = ({ title, value, subValue, trend, isActive, onClick, bgColor }) => {
-  const backgroundStyle = bgColor ? { backgroundColor: bgColor } : { backgroundColor: '#1c024e' };
+const StatCard: React.FC<StatCardProps> = ({ title, value, subValue, trend, isActive, onClick, bgColor, theme }) => {
+  let backgroundStyle = {};
+  let borderClass = theme.borderColor;
+  
+  // Dynamic Text Colors for Cards
+  const cardTextColor = 'text-white'; 
+
+  if (theme.name === 'Joinrs Brand') {
+     // Joinrs style: Orange cards. Active state gets a Purple tint/border.
+     backgroundStyle = isActive 
+        ? { backgroundColor: '#FA4B19', borderColor: '#2D1E46', boxShadow: 'inset 0 0 0 2px #2D1E46' } 
+        : { backgroundColor: '#FA4B19' };
+     borderClass = isActive ? 'border-[#2D1E46]' : 'border-transparent';
+  } else if (bgColor) {
+    backgroundStyle = { backgroundColor: bgColor };
+  } else {
+    // Force Dark Purple for standard cards in Ruadhan/Orange/Enhanced modes
+    backgroundStyle = { backgroundColor: '#1c024e' }; 
+  }
 
   return (
     <button 
       onClick={onClick}
       className={`
-        relative overflow-hidden p-6 text-left w-full group ${THEME.radius} ${THEME.shadow}
-        transition-all duration-300 border ${THEME.borderColor}
-        ${isActive ? 'ring-2 ring-white z-10 scale-[1.02]' : 'hover:border-white/20'}
+        relative overflow-hidden p-6 text-left w-full group ${theme.radius} ${theme.shadow}
+        transition-all duration-300 border ${borderClass}
+        ${isActive && theme.name !== 'Joinrs Brand' ? 'ring-2 ring-white z-10 scale-[1.02]' : 'hover:border-white/20'}
       `}
       style={backgroundStyle}
     >
       <div className="flex justify-between items-start mb-4">
-        <p className={`text-xs font-bold uppercase tracking-widest opacity-70 ${THEME.fontHead} ${THEME.textColor}`}>{title}</p>
+        <p className={`text-xs font-bold uppercase tracking-widest opacity-70 ${theme.fontHead} ${cardTextColor}`}>{title}</p>
         {trend && (
-          <span className={`flex items-center text-[10px] font-inter font-bold px-2 py-0.5 rounded-full bg-white/10 ${THEME.textColor}`}>
+          <span className={`flex items-center text-[10px] font-inter font-bold px-2 py-0.5 rounded-full bg-white/20 ${cardTextColor}`}>
             {parseFloat(trend) > 0 ? <ArrowUpRight size={10} className="mr-1"/> : <ArrowDownRight size={10} className="mr-1"/>}
             {Math.abs(parseFloat(trend))}%
           </span>
         )}
       </div>
       <div>
-        <h3 className={`text-3xl font-bold tracking-tight font-inter ${THEME.textColor}`}>{value}</h3>
+        <h3 className={`text-3xl font-bold tracking-tight font-inter ${cardTextColor}`}>{value}</h3>
         <div className="flex items-center mt-2 gap-2">
-           <span className={`text-[10px] font-medium uppercase tracking-wide opacity-50 font-inter ${THEME.textColor}`}>Goal</span>
-           <span className={`text-xs font-semibold opacity-90 font-inter ${THEME.textColor}`}>{subValue}</span>
+           <span className={`text-[10px] font-medium uppercase tracking-wide opacity-50 font-inter ${cardTextColor}`}>Goal</span>
+           <span className={`text-xs font-semibold opacity-90 font-inter ${cardTextColor}`}>{subValue}</span>
         </div>
       </div>
+      
+      {/* Joinrs Active Indicator line - PURPLE */}
+      {isActive && theme.name === 'Joinrs Brand' && (
+        <div className="absolute bottom-0 left-0 w-full h-1 bg-[#2D1E46]" />
+      )}
     </button>
   );
 };
@@ -231,15 +325,16 @@ interface DrillDownTableProps {
   icon: React.ElementType;
   data: DrillDownItem[];
   total: number;
+  theme: ThemeConfig;
 }
 
-const DrillDownTable: React.FC<DrillDownTableProps> = ({ title, icon: Icon, data, total }) => (
+const DrillDownTable: React.FC<DrillDownTableProps> = ({ title, icon: Icon, data, total, theme }) => (
   <div 
-    className={`flex flex-col h-full overflow-hidden border ${THEME.borderColor} ${THEME.radius} ${THEME.shadow}`}
-    style={{ backgroundColor: '#1c024e' }}
+    className={`flex flex-col h-full overflow-hidden border ${theme.borderColor} ${theme.radius} ${theme.shadow}`}
+    style={{ backgroundColor: theme.name === 'Joinrs Brand' ? '#FA4B19' : PALETTE.purpleDark }}
   >
-    <div className={`px-5 py-4 border-b ${THEME.borderColor} flex items-center justify-between bg-black/10`}>
-      <h4 className={`font-bold flex items-center gap-2 text-sm ${THEME.fontHead} tracking-wide`} style={{ color: '#fefefe' }}>
+    <div className={`px-5 py-4 border-b ${theme.borderColor} flex items-center justify-between bg-black/10`}>
+      <h4 className={`font-bold flex items-center gap-2 text-sm ${theme.fontHead} tracking-wide text-white`}>
         <Icon size={16} className="opacity-70" /> {title}
       </h4>
     </div>
@@ -248,16 +343,16 @@ const DrillDownTable: React.FC<DrillDownTableProps> = ({ title, icon: Icon, data
         {data.map((item, idx) => (
           <div key={idx} className="group">
             <div className="flex justify-between text-xs mb-1.5">
-              <span className={`font-medium font-inter ${THEME.drillText}`}>{item.name}</span>
+              <span className={`font-medium font-inter ${theme.drillText}`}>{item.name}</span>
               <div className="text-right">
-                <span className={`font-mono font-bold font-inter`} style={{ color: '#fefefe' }}>{item.value.toLocaleString()}</span>
-                <span className={`ml-1 text-[10px] opacity-50 font-inter`} style={{ color: '#fefefe' }}>({total > 0 ? ((item.value / total) * 100).toFixed(1) : 0}%)</span>
+                <span className={`font-mono font-bold font-inter text-white`}>{item.value.toLocaleString()}</span>
+                <span className={`ml-1 text-[10px] opacity-50 font-inter text-white`}>({total > 0 ? ((item.value / total) * 100).toFixed(1) : 0}%)</span>
               </div>
             </div>
             <div className="w-full h-1 overflow-hidden bg-white/10 rounded-full">
               <div 
                 className="h-full opacity-80 group-hover:opacity-100 transition-all duration-500 rounded-full" 
-                style={{ width: `${total > 0 ? (item.value / total) * 100 : 0}%`, backgroundColor: THEME.accentColor }}
+                style={{ width: `${total > 0 ? (item.value / total) * 100 : 0}%`, backgroundColor: theme.accentColor }}
               ></div>
             </div>
           </div>
@@ -271,20 +366,21 @@ interface CustomTooltipProps {
   active?: boolean;
   payload?: any[];
   label?: string;
+  theme: ThemeConfig;
 }
 
-const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
+const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, theme }) => {
   if (active && payload && payload.length) {
     return (
       <div 
         className="p-4 shadow-2xl border text-xs font-inter backdrop-blur-xl rounded-lg"
         style={{ 
-            backgroundColor: 'rgba(28, 2, 78, 0.95)',
-            borderColor: THEME.borderColor,
-            color: THEME.textColor
+            backgroundColor: theme.name === 'Joinrs Brand' ? '#FA4B19' : 'rgba(28, 2, 78, 0.95)',
+            borderColor: theme.borderColor,
+            color: 'white' // Always white text for tooltip on these dark/vibrant backgrounds
         }}
       >
-        <p className="font-bold mb-2 border-b pb-1 opacity-70" style={{ borderColor: THEME.borderColor }}>{label}</p>
+        <p className="font-bold mb-2 border-b pb-1 opacity-70" style={{ borderColor: theme.borderColor }}>{label}</p>
         {payload.map((entry, index) => (
           <div key={index} className="flex items-center gap-4 mb-1 justify-between">
             <span className="capitalize font-medium opacity-70">{entry.name}:</span>
@@ -301,6 +397,9 @@ export default function SalesDashboard() {
   const [activeMetric, setActiveMetric] = useState<string>('meetings_booked'); 
   const [rawData, setRawData] = useState<RowData[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [designMode, setDesignMode] = useState<'ruadhan' | 'best' | 'joinrs' | 'orange'>('ruadhan');
+
+  const theme = useMemo(() => getTheme(designMode), [designMode]);
   
   // Initialize Raw Data
   useEffect(() => {
@@ -397,7 +496,7 @@ export default function SalesDashboard() {
 
   const getChartConfig = () => {
     // Dynamic color based on theme
-    const baseColor = THEME.accentColor;
+    const baseColor = theme.accentColor;
     switch (activeMetric) {
       case 'emails_sent': return { actual: 'emails_sent', planned: 'planned_sent', color: baseColor, label: 'Emails Sent' };
       case 'replies': return { actual: 'replies', planned: 'planned_replies', color: baseColor, label: 'Replies' };
@@ -410,25 +509,37 @@ export default function SalesDashboard() {
 
   const config = getChartConfig();
 
+  // Helper to force logo color correct in Joinrs Orange mode
+  const getLogoFilter = () => {
+    if (theme.name === 'Joinrs Brand') return 'none'; // Colored logo on white
+    if (theme.name === 'Joinrs Orange') return 'none'; // Colored logo on white header
+    return 'brightness(0) invert(1)'; // White logo on dark header
+  };
+
+  // Helper to force correct header text color
+  const getHeaderTextColor = () => {
+    if (theme.name === 'Joinrs Brand' || theme.name === 'Joinrs Orange') return '#1c024e';
+    return '#fefefe';
+  };
+
   return (
     <>
-      <div className={`min-h-screen transition-colors duration-500 pb-20 font-inter ${THEME.appBg}`}>
+      <div className={`min-h-screen transition-colors duration-500 pb-20 font-inter ${theme.appBg}`}>
         
         {/* --- HEADER --- */}
-        <header className={`sticky top-0 z-50 transition-all duration-500 ${THEME.headerBg}`}>
+        <header className={`sticky top-0 z-50 transition-all duration-500 border-b ${theme.borderColor} ${theme.headerBg}`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-4">
                   <img 
                     src="/logo.png" 
-                    alt="Joinrs Logo" 
+                    alt="GTMA Logo" 
                     className="h-10 w-auto object-contain transition-all duration-300"
-                    // Logo is likely dark/colored, so no filter needed on white BG
-                    style={{ filter: 'none' }}
+                    style={{ filter: getLogoFilter() }}
                     onError={(e) => { e.currentTarget.style.display='none'; }} 
                   />
-                  <span className={`text-xl tracking-wide ${THEME.fontHead} ${THEME.headerText}`}>
+                  <span className={`text-xl tracking-wide ${theme.fontHead}`} style={{ color: getHeaderTextColor() }}>
                     Attribution Analytics (Joinrs.com)
                   </span>
                 </div>
@@ -436,12 +547,21 @@ export default function SalesDashboard() {
             </div>
 
             <div className="flex items-center gap-3">
-              <div className={`flex items-center gap-2 border ${THEME.borderColor} px-4 py-2 text-sm cursor-pointer hover:bg-slate-50 transition-colors ${THEME.radius} bg-white shadow-sm`}>
-                <Calendar size={14} className="text-[#1c024e]"/>
-                <span className="font-semibold text-xs text-[#1c024e] font-inter">Last 120 Days</span>
-                <ChevronDown size={14} className="text-slate-400"/>
+              {/* Calendar Button: In Joinrs/Orange modes (White Header), use Orange button. In Dark modes, use Card color. */}
+              <div 
+                className={`flex items-center gap-2 border ${theme.borderColor} px-4 py-2 text-sm cursor-pointer hover:bg-slate-50/10 transition-colors ${theme.radius}`} 
+                style={{ 
+                  backgroundColor: (theme.name === 'Joinrs Brand' || theme.name === 'Joinrs Orange') ? '#FA4B19' : theme.cardBg 
+                }}
+              >
+                <Calendar size={14} style={{ color: (theme.name === 'Joinrs Brand' || theme.name === 'Joinrs Orange') ? 'white' : theme.accentColor }}/>
+                <span className="font-semibold text-xs font-inter" style={{ color: (theme.name === 'Joinrs Brand' || theme.name === 'Joinrs Orange') ? 'white' : theme.textColor }}>Last 120 Days</span>
+                <ChevronDown size={14} className="opacity-50" style={{ color: (theme.name === 'Joinrs Brand' || theme.name === 'Joinrs Orange') ? 'white' : theme.textColor }}/>
               </div>
-              <button className="h-9 w-9 flex items-center justify-center text-slate-400 hover:text-[#1c024e] hover:bg-slate-50 transition-colors rounded-full">
+              <button 
+                className="h-9 w-9 flex items-center justify-center opacity-70 hover:opacity-100 hover:bg-white/10 transition-colors rounded-full" 
+                style={{ color: (theme.name === 'Joinrs Brand' || theme.name === 'Joinrs Orange') ? '#1c024e' : theme.textColor }}
+              >
                 <Bell size={18} />
               </button>
             </div>
@@ -450,8 +570,8 @@ export default function SalesDashboard() {
 
         {isLoading ? (
           <div className="min-h-[calc(100vh-80px)] flex flex-col items-center justify-center">
-            <div className="w-8 h-8 border-4 border-t-transparent rounded-full animate-spin mb-4" style={{ borderColor: THEME.accentColor, borderTopColor: 'transparent' }}></div>
-            <p className={`text-sm font-medium opacity-50 animate-pulse font-inter ${THEME.textColor}`}>Syncing data for Joiners...</p>
+            <div className="w-8 h-8 border-4 border-t-transparent rounded-full animate-spin mb-4" style={{ borderColor: theme.accentColor, borderTopColor: 'transparent' }}></div>
+            <p className="text-sm font-medium opacity-50 animate-pulse font-inter" style={{ color: theme.textColor }}>Syncing data for Joiners...</p>
           </div>
         ) : (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
@@ -465,6 +585,7 @@ export default function SalesDashboard() {
               trend={((totals.emails_sent! - totals.planned_sent!) / totals.planned_sent! * 100).toFixed(1)}
               isActive={activeMetric === 'emails_sent'}
               onClick={() => setActiveMetric('emails_sent')}
+              theme={theme}
             />
             <StatCard 
               title="Replied" 
@@ -473,6 +594,7 @@ export default function SalesDashboard() {
               trend={((totals.replies! - totals.planned_replies!) / totals.planned_replies! * 100).toFixed(1)}
               isActive={activeMetric === 'replies'}
               onClick={() => setActiveMetric('replies')}
+              theme={theme}
             />
             <StatCard 
               title="MQLs (Positive)" 
@@ -481,6 +603,7 @@ export default function SalesDashboard() {
               trend={((totals.positive_replies! - totals.planned_mqls!) / totals.planned_mqls! * 100).toFixed(1)}
               isActive={activeMetric === 'positive_replies'}
               onClick={() => setActiveMetric('positive_replies')}
+              theme={theme}
             />
             <StatCard 
               title="SQLs (Meetings)" 
@@ -490,6 +613,7 @@ export default function SalesDashboard() {
               isActive={activeMetric === 'meetings_booked'}
               onClick={() => setActiveMetric('meetings_booked')}
               bgColor={PALETTE.green} 
+              theme={theme}
             />
             <StatCard 
               title="Bounces" 
@@ -499,29 +623,36 @@ export default function SalesDashboard() {
               isActive={activeMetric === 'bounces'}
               onClick={() => setActiveMetric('bounces')}
               bgColor={PALETTE.red} 
+              theme={theme}
             />
           </div>
 
           <div className="grid grid-cols-1 gap-8 mb-8">
             
             {/* --- MAIN CHART --- */}
-            <div className={`w-full p-8 transition-all duration-500 border ${THEME.borderColor} ${THEME.radius} ${THEME.shadow}`} style={{ backgroundColor: THEME.cardBg }}>
+            {/* For Joinrs, chart container is Orange. For Orange Mode, it's Dark Purple. For others, it's specific card BG. */}
+            <div 
+                className={`w-full p-8 transition-all duration-500 border ${theme.borderColor} ${theme.radius} ${theme.shadow}`} 
+                style={{ 
+                  backgroundColor: theme.name === 'Joinrs Brand' ? '#FA4B19' : (theme.name === 'Joinrs Orange' ? '#1c024e' : theme.cardBg) 
+                }}
+            >
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h2 className={`text-2xl font-bold flex items-center gap-2 ${THEME.fontHead} ${THEME.textColor}`}>
+                  <h2 className={`text-2xl font-bold flex items-center gap-2 ${theme.fontHead}`} style={{ color: theme.name === 'Joinrs Brand' ? 'white' : theme.textColor }}>
                     Campaign Velocity: {config.label}
                   </h2>
-                  <p className={`text-sm mt-1 font-medium opacity-50 font-inter ${THEME.textColor}`}>Comparing Actual Results vs. Strategic Plan</p>
+                  <p className="text-sm mt-1 font-medium opacity-50 font-inter" style={{ color: theme.name === 'Joinrs Brand' ? 'white' : theme.textColor }}>Comparing Actual Results vs. Strategic Plan</p>
                 </div>
-                <div className={`flex items-center gap-6 text-xs font-medium px-4 py-2 border ${THEME.borderColor} bg-white/5 ${THEME.radius}`}>
+                <div className={`flex items-center gap-6 text-xs font-medium px-4 py-2 border ${theme.borderColor} bg-white/5 ${theme.radius}`}>
                   <div className="flex items-center gap-2">
-                    <span className="w-6 h-0.5 border-t-2 border-dashed opacity-40" style={{ borderColor: THEME.accentColor }}></span>
-                    <span className={`opacity-70 font-inter ${THEME.textColor}`}>Goal</span>
+                    <span className="w-6 h-0.5 border-t-2 border-dashed opacity-40" style={{ borderColor: theme.accentColor }}></span>
+                    <span className="opacity-70 font-inter" style={{ color: theme.name === 'Joinrs Brand' ? 'white' : theme.textColor }}>Goal</span>
                   </div>
                   <div className="h-4 w-px bg-white/10"></div>
                   <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: THEME.accentColor }}></span>
-                    <span className={`font-inter ${THEME.textColor}`}>Actual</span>
+                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: theme.accentColor }}></span>
+                    <span className="font-inter" style={{ color: theme.name === 'Joinrs Brand' ? 'white' : theme.textColor }}>Actual</span>
                   </div>
                 </div>
               </div>
@@ -531,7 +662,7 @@ export default function SalesDashboard() {
                   <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorMain" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={config.color} stopOpacity={THEME.chartOpacity}/>
+                        <stop offset="5%" stopColor={config.color} stopOpacity={theme.chartOpacity}/>
                         <stop offset="95%" stopColor={config.color} stopOpacity={0}/>
                       </linearGradient>
                     </defs>
@@ -549,20 +680,20 @@ export default function SalesDashboard() {
 
                     <XAxis 
                       dataKey="displayDate" 
-                      tick={{ fill: 'rgba(254,254,254,0.5)', fontSize: 11, fontWeight: 500, fontFamily: 'Inter' }} 
+                      tick={{ fill: theme.name === 'Joinrs Brand' ? 'rgba(255,255,255,0.8)' : 'rgba(254,254,254,0.5)', fontSize: 11, fontWeight: 500, fontFamily: 'Inter' }} 
                       axisLine={false} 
                       tickLine={false} 
                       minTickGap={60}
                       dy={10}
                     />
                     <YAxis 
-                      tick={{ fill: 'rgba(254,254,254,0.5)', fontSize: 11, fontWeight: 500, fontFamily: 'Inter' }} 
+                      tick={{ fill: theme.name === 'Joinrs Brand' ? 'rgba(255,255,255,0.8)' : 'rgba(254,254,254,0.5)', fontSize: 11, fontWeight: 500, fontFamily: 'Inter' }} 
                       axisLine={false} 
                       tickLine={false}
                       tickFormatter={(value) => value >= 1000 ? `${(value/1000).toFixed(1)}k` : value}
                       dx={-10}
                     />
-                    <Tooltip content={<CustomTooltip />} />
+                    <Tooltip content={<CustomTooltip theme={theme} />} />
                     
                     <Line 
                       type="monotone" 
@@ -593,8 +724,8 @@ export default function SalesDashboard() {
             </div>
           </div>
 
-          <h3 className={`text-xs font-bold uppercase tracking-widest mb-6 flex items-center gap-2 px-1 opacity-50 font-inter ${THEME.textColor}`}>
-            <Filter size={12} /> Data Attribution: <span style={{ color: THEME.accentColor }}>{config.label}</span>
+          <h3 className={`text-xs font-bold uppercase tracking-widest mb-6 flex items-center gap-2 px-1 opacity-50 font-inter`} style={{ color: theme.textColor }}>
+            <Filter size={12} /> Data Attribution: <span style={{ color: theme.accentColor }}>{config.label}</span>
           </h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -603,29 +734,73 @@ export default function SalesDashboard() {
               icon={Server} 
               data={inboxStats.data} 
               total={inboxStats.total}
+              theme={theme}
             />
             <DrillDownTable 
               title="Region" 
               icon={Globe} 
               data={regionStats.data} 
               total={regionStats.total}
+              theme={theme}
             />
             <DrillDownTable 
               title="Persona" 
               icon={Users} 
               data={personaStats.data} 
               total={personaStats.total}
+              theme={theme}
             />
             <DrillDownTable 
               title="Campaign" 
               icon={Layers} 
               data={campaignStats.data} 
               total={campaignStats.total}
+              theme={theme}
             />
           </div>
 
         </main>
         )}
+
+        {/* --- DESIGN ENGINE TOGGLE --- */}
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2">
+          {/* Theme Display Badge */}
+          <div className="self-end px-3 py-1 bg-black/50 text-white text-xs rounded-full backdrop-blur-sm border border-white/10">
+            Current: {theme.name}
+          </div>
+          
+          {/* Toggle Buttons */}
+          <div className="flex gap-2">
+            <button 
+              onClick={() => setDesignMode('ruadhan')}
+              className={`p-3 rounded-full shadow-lg transition-all border ${designMode === 'ruadhan' ? 'bg-white text-[#1c024e] border-white' : 'bg-[#1c024e] text-white border-white/20 hover:bg-[#352c47]'}`}
+              title="Ruadhán Strict"
+            >
+              <Palette size={20} />
+            </button>
+            <button 
+              onClick={() => setDesignMode('best')}
+              className={`p-3 rounded-full shadow-lg transition-all border ${designMode === 'best' ? 'bg-white text-[#1c024e] border-white' : 'bg-[#1c024e] text-white border-white/20 hover:bg-[#352c47]'}`}
+              title="Enhanced Design"
+            >
+              <Sparkles size={20} />
+            </button>
+            <button 
+              onClick={() => setDesignMode('joinrs')}
+              className={`p-3 rounded-full shadow-lg transition-all border ${designMode === 'joinrs' ? 'bg-[#FA4B19] text-white border-[#FA4B19]' : 'bg-[#1c024e] text-white border-white/20 hover:bg-[#352c47]'}`}
+              title="Joinrs Brand"
+            >
+              <Gem size={20} />
+            </button>
+            <button 
+              onClick={() => setDesignMode('orange')}
+              className={`p-3 rounded-full shadow-lg transition-all border ${designMode === 'orange' ? 'bg-[#FA4B19] text-white border-white' : 'bg-[#1c024e] text-white border-white/20 hover:bg-[#352c47]'}`}
+              title="Joinrs Orange"
+            >
+              <Sun size={20} />
+            </button>
+          </div>
+        </div>
       </div>
     </>
   );
