@@ -3,29 +3,37 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
 :root {
-  --foreground-rgb: 15, 23, 42; /* Slate-900 */
-  --background-start-rgb: 248, 250, 252; /* Slate-50 */
-  --background-end-rgb: 248, 250, 252;
+  --foreground-rgb: 254, 254, 254; 
+  --background-start-rgb: 28, 2, 78; /* #1c024e */
+  --background-end-rgb: 28, 2, 78;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: rgb(var(--background-start-rgb));
+  color: #fefefe;
+  background: #1c024e; /* Deep Purple Base */
+  font-family: 'Inter', sans-serif;
 }
 
-/* Custom Scrollbar for the Drilldown tables */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Playfair Display', serif;
+}
+
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent; 
+  background: rgba(255, 255, 255, 0.05); 
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1; 
+  background: rgba(255, 255, 255, 0.2); 
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8; 
+  background: rgba(255, 255, 255, 0.4); 
 }

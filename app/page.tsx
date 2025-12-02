@@ -3,13 +3,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
   LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, 
-  Tooltip, ResponsiveContainer, BarChart, Bar, Cell, ComposedChart, ReferenceLine
+  Tooltip, ResponsiveContainer, ComposedChart, ReferenceLine
 } from 'recharts';
 import { 
-  Mail, MessageSquare, Target, Trophy, XOctagon, 
   Calendar, ChevronDown, Filter, ArrowUpRight, ArrowDownRight,
-  Zap, Users, Bell, Globe, Server, Layers,
-  Palette, Moon, Sun, Monitor, Layout
+  Bell, Globe, Server, Layers, Users
 } from 'lucide-react';
 
 /**
@@ -146,110 +144,19 @@ const generateRawCSVData = (): RowData[] => {
 };
 
 /**
- * --- THEME ENGINE ---
+ * --- COLORS & FONTS ---
  */
-
-type ThemeMode = 'light' | 'dark';
-type DesignSystem = 'enterprise' | 'modern' | 'minimal';
-
-interface ThemeConfig {
-  bg: string;
-  cardBg: string;
-  textPrimary: string;
-  textSecondary: string;
-  border: string;
-  accent: string;
-  accentLight: string;
-  chartMain: string;
-  chartPlannedOpacity: number;
-  chartStrokeWidth: number;
-  chartType: 'monotone' | 'basis' | 'step' | 'linear' | 'natural';
-  radius: string;
-  shadow: string;
-  headerBg: string;
-  logoFilter: string;
-  fontFamilyHead: string;
-  fontFamilyBody: string;
-  filter: string; // CSS Filter for glows
-  colors: {
-    purpleDark: string;
-    purpleLight: string;
-    green: string;
-    red: string;
-    white: string;
-  }
-}
-
 const COLORS = {
-  purpleDark: '#1c024e',
-  purpleLight: '#352c47',
-  green: '#077005',
-  red: '#700805',
-  white: '#fefefe'
+  purpleDark: '#1c024e',  // Main App Background
+  purpleLight: '#352c47', // Card Background
+  green: '#077005',       // Success Widget
+  red: '#700805',         // Error Widget
+  white: '#fefefe'        // Text
 };
 
-const getTheme = (mode: ThemeMode, design: DesignSystem): ThemeConfig => {
-  // We are forcing the Dark/Purple theme as the primary look per the requirement
-  // but keeping the logic extensible if you want to switch back later.
-  
-  // Base configuration following the uploaded image palette
-  const baseTheme = {
-    bg: 'bg-[#1c024e]', // Dark Purple Background
-    cardBg: 'bg-[#352c47]', // Light Purple Card
-    textPrimary: 'text-[#fefefe]',
-    textSecondary: 'text-[#fefefe]/70', // White with opacity
-    border: 'border-[#fefefe]/10',
-    accent: COLORS.green,
-    accentLight: 'bg-[#352c47]',
-    chartMain: COLORS.white,
-    headerBg: 'bg-[#1c024e]',
-    logoFilter: 'brightness(0) invert(1)', // Make logo white
-    fontFamilyHead: 'font-playfair',
-    fontFamilyBody: 'font-inter',
-    colors: COLORS,
-  };
-
-  let theme: Partial<ThemeConfig> = {};
-
-  switch(design) {
-    case 'modern': 
-      theme = {
-        radius: 'rounded-3xl',
-        shadow: 'shadow-[0_0_30px_-5px_rgba(254,254,254,0.1)]',
-        chartType: 'basis',
-        chartStrokeWidth: 4,
-        chartPlannedOpacity: 0.5,
-        filter: 'drop-shadow(0 0 8px rgba(254,254,254,0.3))',
-        border: 'border-transparent'
-      };
-      break;
-      
-    case 'minimal': 
-      theme = {
-        radius: 'rounded-none',
-        shadow: 'shadow-none',
-        chartType: 'step',
-        chartStrokeWidth: 2,
-        chartPlannedOpacity: 1,
-        filter: 'none',
-        border: 'border-2 border-[#fefefe]/20'
-      };
-      break;
-
-    default: // "Enterprise"
-      theme = {
-        radius: 'rounded-xl',
-        shadow: 'shadow-xl shadow-black/20',
-        chartType: 'natural',
-        chartStrokeWidth: 2,
-        chartPlannedOpacity: 0.3,
-        filter: 'none',
-        border: 'border-[#fefefe]/10'
-      };
-      break;
-  }
-
-  return { ...baseTheme, ...theme } as ThemeConfig;
+const FONTS = {
+  head: 'font-[family-name:var(--font-playfair-display),serif]',
+  body: 'font-[family-name:var(--font-inter),sans-serif]',
 };
 
 /**
@@ -261,64 +168,44 @@ interface StatCardProps {
   value: string | undefined;
   subValue: string | undefined;
   trend: string;
-  icon: React.ElementType;
   isActive: boolean;
   onClick: () => void;
-  theme: ThemeConfig;
+  bgColor?: string; 
 }
 
-const StatCard: React.FC<StatCardProps> = ({ title, value, subValue, trend, icon: Icon, isActive, onClick, theme }) => (
-  <button 
-    onClick={onClick}
-    className={`
-      relative overflow-hidden p-5 transition-all duration-300 text-left w-full group
-      ${theme.cardBg} ${theme.radius}
-      ${isActive 
-        ? `ring-2 ring-[${theme.colors.white}] z-10 scale-[1.02] ${theme.shadow}` 
-        : `border ${theme.border} hover:border-[${theme.colors.white}]/50 ${theme.shadow}`
-      }
-    `}
-    style={{ borderColor: isActive ? theme.colors.white : undefined }}
-  >
-    <div className="flex justify-between items-start mb-3">
-      <div 
-        className={`p-2.5 rounded-lg transition-colors`}
-        style={{ 
-          backgroundColor: isActive ? theme.colors.white : 'rgba(254,254,254,0.05)',
-          color: isActive ? theme.colors.purpleDark : theme.colors.white 
-        }}
-      >
-        <Icon size={18} />
+const StatCard: React.FC<StatCardProps> = ({ title, value, subValue, trend, isActive, onClick, bgColor }) => {
+  // Use Light Purple for cards unless overridden
+  const cardBg = bgColor || COLORS.purpleLight;
+  
+  return (
+    <button 
+      onClick={onClick}
+      className={`
+        relative overflow-hidden p-6 text-left w-full group rounded-none
+        transition-all duration-300 border border-white/5
+        ${isActive ? 'ring-2 ring-white z-10 scale-[1.02]' : 'hover:border-white/20'}
+      `}
+      style={{ backgroundColor: cardBg }}
+    >
+      <div className="flex justify-between items-start mb-4">
+        <p className="text-xs font-bold uppercase tracking-widest text-white/70 font-playfair">{title}</p>
+        {trend && (
+          <span className="flex items-center text-[10px] font-inter font-bold px-2 py-0.5 rounded-full bg-white/10 text-white">
+            {parseFloat(trend) > 0 ? <ArrowUpRight size={10} className="mr-1"/> : <ArrowDownRight size={10} className="mr-1"/>}
+            {Math.abs(parseFloat(trend))}%
+          </span>
+        )}
       </div>
-      {trend && (
-        <span 
-          className={`flex items-center text-[11px] ${theme.fontFamilyBody} font-bold px-2 py-0.5 rounded-full`}
-          style={{ 
-            backgroundColor: parseFloat(trend) > 0 ? theme.colors.green + '20' : theme.colors.red + '20',
-            color: parseFloat(trend) > 0 ? '#4ade80' : '#f87171' // Lighter green/red for contrast on dark bg
-          }}
-        >
-          {parseFloat(trend) > 0 ? <ArrowUpRight size={12} className="mr-1"/> : <ArrowDownRight size={12} className="mr-1"/>}
-          {Math.abs(parseFloat(trend))}%
-        </span>
-      )}
-    </div>
-    <div>
-      <p className={`text-[10px] font-bold uppercase tracking-widest ${theme.textSecondary} ${theme.fontFamilyBody}`}>{title}</p>
-      <h3 className={`text-2xl font-bold mt-1 tracking-tight ${theme.textPrimary} ${theme.fontFamilyBody}`}>{value}</h3>
-      <div className="flex items-center mt-1.5 gap-2">
-         <span className={`text-[10px] font-medium uppercase tracking-wide ${theme.textSecondary} ${theme.fontFamilyBody}`}>Goal</span>
-         <span className={`text-[11px] font-semibold ${theme.textPrimary} ${theme.fontFamilyBody}`}>{subValue}</span>
+      <div>
+        <h3 className="text-3xl font-bold tracking-tight text-white font-playfair">{value}</h3>
+        <div className="flex items-center mt-2 gap-2">
+           <span className="text-[10px] font-medium uppercase tracking-wide text-white/50 font-inter">Goal</span>
+           <span className="text-xs font-semibold text-white/90 font-inter">{subValue}</span>
+        </div>
       </div>
-    </div>
-    {isActive && (
-      <div 
-        className="absolute bottom-0 left-0 w-full h-1" 
-        style={{ background: `linear-gradient(90deg, ${theme.colors.white}, transparent)` }} 
-      />
-    )}
-  </button>
-);
+    </button>
+  );
+};
 
 interface DrillDownItem {
   name: string;
@@ -330,31 +217,30 @@ interface DrillDownTableProps {
   icon: React.ElementType;
   data: DrillDownItem[];
   total: number;
-  theme: ThemeConfig;
 }
 
-const DrillDownTable: React.FC<DrillDownTableProps> = ({ title, icon: Icon, data, total, theme }) => (
-  <div className={`${theme.cardBg} ${theme.radius} border ${theme.border} ${theme.shadow} flex flex-col h-full overflow-hidden`}>
-    <div className={`px-4 py-3 border-b ${theme.border} flex items-center justify-between bg-black/10`}>
-      <h4 className={`font-bold flex items-center gap-2 text-sm ${theme.fontFamilyHead} tracking-wide ${theme.textPrimary}`}>
-        <Icon size={16} style={{ color: theme.colors.white }} /> {title}
+const DrillDownTable: React.FC<DrillDownTableProps> = ({ title, icon: Icon, data, total }) => (
+  <div className="flex flex-col h-full overflow-hidden border border-white/5" style={{ backgroundColor: COLORS.purpleLight }}>
+    <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between bg-black/10">
+      <h4 className="font-bold flex items-center gap-2 text-sm font-playfair tracking-wide text-white">
+        <Icon size={16} className="text-white/70" /> {title}
       </h4>
     </div>
-    <div className="p-4 flex-1 overflow-y-auto max-h-[250px] scrollbar-thin scrollbar-thumb-white/20">
+    <div className="p-5 flex-1 overflow-y-auto max-h-[300px] scrollbar-thin scrollbar-thumb-white/20">
       <div className="space-y-4">
         {data.map((item, idx) => (
           <div key={idx} className="group">
             <div className="flex justify-between text-xs mb-1.5">
-              <span className={`font-semibold ${theme.textPrimary} ${theme.fontFamilyBody}`}>{item.name}</span>
+              <span className="font-medium text-white font-inter">{item.name}</span>
               <div className="text-right">
-                <span className={`font-mono font-bold ${theme.textPrimary} ${theme.fontFamilyBody}`}>{item.value.toLocaleString()}</span>
-                <span className={`ml-1 text-[10px] ${theme.textSecondary} ${theme.fontFamilyBody}`}>({total > 0 ? ((item.value / total) * 100).toFixed(1) : 0}%)</span>
+                <span className="font-mono font-bold text-white font-inter">{item.value.toLocaleString()}</span>
+                <span className="ml-1 text-[10px] text-white/50 font-inter">({total > 0 ? ((item.value / total) * 100).toFixed(1) : 0}%)</span>
               </div>
             </div>
-            <div className={`w-full rounded-full h-1.5 overflow-hidden bg-white/10`}>
+            <div className="w-full h-1 overflow-hidden bg-white/10">
               <div 
-                className={`h-full ${theme.radius === 'rounded-none' ? 'rounded-none' : 'rounded-full'} opacity-80 group-hover:opacity-100 transition-all duration-500`} 
-                style={{ width: `${total > 0 ? (item.value / total) * 100 : 0}%`, backgroundColor: theme.colors.white }}
+                className="h-full opacity-80 group-hover:opacity-100 transition-all duration-500 bg-white" 
+                style={{ width: `${total > 0 ? (item.value / total) * 100 : 0}%` }}
               ></div>
             </div>
           </div>
@@ -368,21 +254,17 @@ interface CustomTooltipProps {
   active?: boolean;
   payload?: any[];
   label?: string;
-  theme: ThemeConfig;
 }
 
-const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, theme }) => {
+const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
-      <div className={`${theme.cardBg} p-3 ${theme.radius} shadow-xl border ${theme.border} text-xs ${theme.fontFamilyBody} backdrop-blur-md`}>
-        <p className={`font-bold mb-2 border-b ${theme.border} pb-1 ${theme.textSecondary}`}>{label}</p>
+      <div className="p-4 shadow-2xl border border-white/10 text-xs font-inter backdrop-blur-xl" style={{ backgroundColor: COLORS.purpleLight }}>
+        <p className="font-bold mb-2 border-b border-white/10 pb-1 text-white/70">{label}</p>
         {payload.map((entry, index) => (
-          <div key={index} className="flex items-center gap-3 mb-1 justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.stroke || entry.fill }} />
-              <span className={`capitalize font-medium ${theme.textSecondary}`}>{entry.name}:</span>
-            </div>
-            <span className={`font-mono font-bold ${theme.textPrimary}`}>{entry.value.toLocaleString()}</span>
+          <div key={index} className="flex items-center gap-4 mb-1 justify-between">
+            <span className="capitalize font-medium text-white/70">{entry.name}:</span>
+            <span className="font-mono font-bold text-white">{entry.value.toLocaleString()}</span>
           </div>
         ))}
       </div>
@@ -396,13 +278,6 @@ export default function SalesDashboard() {
   const [rawData, setRawData] = useState<RowData[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   
-  // Theme State (Forced to Light/Enterprise as base, but visually overridden by getTheme)
-  const [mode, setMode] = useState<ThemeMode>('dark'); 
-  const [design, setDesign] = useState<DesignSystem>('enterprise');
-
-  // Computed Theme
-  const theme = useMemo(() => getTheme(mode, design), [mode, design]);
-
   // Initialize Raw Data
   useEffect(() => {
     setIsLoading(true);
@@ -498,9 +373,7 @@ export default function SalesDashboard() {
   const campaignStats = useMemo(() => getGroupedData('campaign_name'), [rawData, activeMetric]);
 
   const getChartConfig = () => {
-    // Everything is white/white-ish per requirement
-    const baseColor = theme.colors.white;
-    
+    const baseColor = COLORS.white;
     switch (activeMetric) {
       case 'emails_sent': return { actual: 'emails_sent', planned: 'planned_sent', color: baseColor, label: 'Emails Sent' };
       case 'replies': return { actual: 'replies', planned: 'planned_replies', color: baseColor, label: 'Replies' };
@@ -514,273 +387,219 @@ export default function SalesDashboard() {
   const config = getChartConfig();
 
   return (
-    <>
-      {/* Inject Fonts directly */}
-      <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
-        .font-playfair { font-family: 'Playfair Display', serif; }
-        .font-inter { font-family: 'Inter', sans-serif; }
-      `}</style>
-
-      <div className={`min-h-screen transition-colors duration-500 pb-20 ${theme.bg} ${theme.textPrimary}`}>
-        
-        {/* --- HEADER --- */}
-        <header className={`${theme.headerBg} border-b ${theme.border} sticky top-0 z-50 transition-all duration-500`}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div className="flex items-center gap-6">
+    <div className="min-h-screen transition-colors duration-500 pb-20 font-inter" style={{ backgroundColor: COLORS.purpleDark }}>
+      
+      {/* --- HEADER --- */}
+      <header className="sticky top-0 z-50 transition-all duration-500 border-b border-white/5" style={{ backgroundColor: COLORS.purpleLight }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4">
               <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <img 
-                    src="/logo.png" 
-                    alt="GTMA Logo" 
-                    className="h-10 w-auto object-contain transition-all duration-300"
-                    style={{ filter: theme.logoFilter }}
-                    onError={(e) => { e.currentTarget.style.display='none'; }} 
-                  />
-                  <div className="h-8 w-px bg-white/20 mx-2"></div>
-                  <span className={`text-lg font-semibold tracking-wide ${theme.fontFamilyHead}`}>
-                    Attribution Analytics Joinrs.com x The GTMA
-                  </span>
-                </div>
+                <img 
+                  src="/logo.png" 
+                  alt="GTMA Logo" 
+                  className="h-10 w-auto object-contain transition-all duration-300"
+                  style={{ filter: 'brightness(0) invert(1)' }}
+                  onError={(e) => { e.currentTarget.style.display='none'; }} 
+                />
+                <span className="text-xl text-white tracking-wide font-playfair">
+                  Attribution Analytics Joinrs.com x The GTMA
+                </span>
               </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className={`flex items-center gap-2 ${theme.cardBg} border ${theme.border} ${theme.radius} px-3 py-1.5 text-sm cursor-pointer shadow-sm transition-colors`}>
-                <Calendar size={14} style={{ color: theme.colors.white }}/>
-                <span className={`font-semibold text-xs ${theme.textSecondary} ${theme.fontFamilyBody}`}>Last 120 Days</span>
-                <ChevronDown size={14} className={theme.textSecondary}/>
-              </div>
-              <button className={`h-8 w-8 rounded-full bg-white/10 flex items-center justify-center ${theme.textSecondary} hover:bg-white/20 transition-colors`}>
-                <Bell size={16} />
-              </button>
             </div>
           </div>
-        </header>
 
-        {/* --- THEME SWITCHER FLOATING WIDGET (Hidden by default based on strict requirement for one look, but kept in code if needed for demo purposes later) --- */}
-        {/* <div className={`fixed bottom-6 right-6 z-50 ...`}> ... </div> */}
-        <div className={`fixed bottom-6 right-6 z-50 p-3 ${theme.cardBg} border ${theme.border} shadow-2xl ${theme.radius} flex flex-col gap-3 w-48 transition-all duration-300`}>
-             <div className="flex justify-between items-center px-1">
-              <span className={`text-[10px] uppercase font-bold ${theme.textSecondary} ${theme.fontFamilyBody}`}>Design System</span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 border border-white/10 px-4 py-2 text-sm cursor-pointer hover:bg-white/5 transition-colors" style={{ backgroundColor: COLORS.purpleDark }}>
+              <Calendar size={14} className="text-white"/>
+              <span className="font-semibold text-xs text-white font-inter">Last 120 Days</span>
+              <ChevronDown size={14} className="text-white/50"/>
             </div>
-            <div className="space-y-1">
-              <button onClick={() => setDesign('enterprise')} className={`w-full text-left px-3 py-2 text-xs font-medium rounded-md transition-all flex items-center gap-2 ${design === 'enterprise' ? 'bg-white/10 text-white' : 'text-white/50 hover:bg-white/5'}`}>
-                <Layout size={14} /> Enterprise
-              </button>
-              <button onClick={() => setDesign('modern')} className={`w-full text-left px-3 py-2 text-xs font-medium rounded-md transition-all flex items-center gap-2 ${design === 'modern' ? 'bg-white/10 text-white' : 'text-white/50 hover:bg-white/5'}`}>
-                <Monitor size={14} /> Modern
-              </button>
-              <button onClick={() => setDesign('minimal')} className={`w-full text-left px-3 py-2 text-xs font-medium rounded-md transition-all flex items-center gap-2 ${design === 'minimal' ? 'bg-white/10 text-white' : 'text-white/50 hover:bg-white/5'}`}>
-                <Layers size={14} /> Minimal
-              </button>
-            </div>
+            <button className="h-9 w-9 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-colors">
+              <Bell size={18} />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {isLoading ? (
+        <div className="min-h-[calc(100vh-80px)] flex flex-col items-center justify-center">
+          <div className="w-8 h-8 border-4 border-t-transparent rounded-full animate-spin mb-4" style={{ borderColor: COLORS.white, borderTopColor: 'transparent' }}></div>
+          <p className="text-sm font-medium text-white/50 animate-pulse font-inter">Syncing data for Joiners...</p>
+        </div>
+      ) : (
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+        
+        {/* --- KPI SCORECARDS --- */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-0 mb-8 shadow-2xl shadow-black/20">
+          <StatCard 
+            title="Emails Sent" 
+            value={totals.emails_sent?.toLocaleString()} 
+            subValue={totals.planned_sent?.toLocaleString()}
+            trend={((totals.emails_sent! - totals.planned_sent!) / totals.planned_sent! * 100).toFixed(1)}
+            isActive={activeMetric === 'emails_sent'}
+            onClick={() => setActiveMetric('emails_sent')}
+          />
+          <StatCard 
+            title="Replied" 
+            value={totals.replies?.toLocaleString()} 
+            subValue={totals.planned_replies?.toLocaleString()}
+            trend={((totals.replies! - totals.planned_replies!) / totals.planned_replies! * 100).toFixed(1)}
+            isActive={activeMetric === 'replies'}
+            onClick={() => setActiveMetric('replies')}
+          />
+          <StatCard 
+            title="MQLs (Positive)" 
+            value={totals.positive_replies?.toLocaleString()} 
+            subValue={totals.planned_mqls?.toLocaleString()}
+            trend={((totals.positive_replies! - totals.planned_mqls!) / totals.planned_mqls! * 100).toFixed(1)}
+            isActive={activeMetric === 'positive_replies'}
+            onClick={() => setActiveMetric('positive_replies')}
+          />
+          <StatCard 
+            title="SQLs (Meetings)" 
+            value={totals.meetings_booked?.toLocaleString()} 
+            subValue={totals.planned_sqls?.toLocaleString()}
+            trend={((totals.meetings_booked! - totals.planned_sqls!) / totals.planned_sqls! * 100).toFixed(1)}
+            isActive={activeMetric === 'meetings_booked'}
+            onClick={() => setActiveMetric('meetings_booked')}
+            bgColor={COLORS.green} // GREEN Widget
+          />
+          <StatCard 
+            title="Bounces" 
+            value={totals.bounces?.toLocaleString()} 
+            subValue={totals.planned_bounces?.toLocaleString()}
+            trend="-1.5" 
+            isActive={activeMetric === 'bounces'}
+            onClick={() => setActiveMetric('bounces')}
+            bgColor={COLORS.red} // RED Widget
+          />
         </div>
 
-        {isLoading ? (
-          <div className="min-h-[calc(100vh-64px)] flex flex-col items-center justify-center">
-            <div className="w-8 h-8 border-4 border-t-transparent rounded-full animate-spin mb-4" style={{ borderColor: theme.colors.white, borderTopColor: 'transparent' }}></div>
-            <p className={`text-sm font-medium ${theme.textSecondary} animate-pulse ${theme.fontFamilyBody}`}>Syncing data for Joiners...</p>
-          </div>
-        ) : (
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+        <div className="grid grid-cols-1 gap-8 mb-8">
           
-          {/* --- KPI SCORECARDS --- */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-            <StatCard 
-              title="Emails Sent" 
-              value={totals.emails_sent?.toLocaleString()} 
-              subValue={totals.planned_sent?.toLocaleString()}
-              trend={((totals.emails_sent! - totals.planned_sent!) / totals.planned_sent! * 100).toFixed(1)}
-              icon={Mail}
-              isActive={activeMetric === 'emails_sent'}
-              onClick={() => setActiveMetric('emails_sent')}
-              theme={theme}
-            />
-            <StatCard 
-              title="Replied" 
-              value={totals.replies?.toLocaleString()} 
-              subValue={totals.planned_replies?.toLocaleString()}
-              trend={((totals.replies! - totals.planned_replies!) / totals.planned_replies! * 100).toFixed(1)}
-              icon={MessageSquare}
-              isActive={activeMetric === 'replies'}
-              onClick={() => setActiveMetric('replies')}
-              theme={theme}
-            />
-            <StatCard 
-              title="MQLs (Positive)" 
-              value={totals.positive_replies?.toLocaleString()} 
-              subValue={totals.planned_mqls?.toLocaleString()}
-              trend={((totals.positive_replies! - totals.planned_mqls!) / totals.planned_mqls! * 100).toFixed(1)}
-              icon={Target}
-              isActive={activeMetric === 'positive_replies'}
-              onClick={() => setActiveMetric('positive_replies')}
-              theme={theme}
-            />
-            <StatCard 
-              title="SQLs (Meetings)" 
-              value={totals.meetings_booked?.toLocaleString()} 
-              subValue={totals.planned_sqls?.toLocaleString()}
-              trend={((totals.meetings_booked! - totals.planned_sqls!) / totals.planned_sqls! * 100).toFixed(1)}
-              icon={Trophy}
-              isActive={activeMetric === 'meetings_booked'}
-              onClick={() => setActiveMetric('meetings_booked')}
-              theme={theme}
-            />
-            <StatCard 
-              title="Bounces" 
-              value={totals.bounces?.toLocaleString()} 
-              subValue={totals.planned_bounces?.toLocaleString()}
-              trend="-1.5" 
-              icon={XOctagon}
-              isActive={activeMetric === 'bounces'}
-              onClick={() => setActiveMetric('bounces')}
-              theme={theme}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-1 gap-8 mb-8">
-            
-            {/* --- MAIN CHART --- */}
-            <div className={`w-full ${theme.cardBg} ${theme.radius} border ${theme.border} ${theme.shadow} p-6 transition-all duration-500`}>
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h2 className={`text-2xl font-bold flex items-center gap-2 ${theme.textPrimary} ${theme.fontFamilyHead}`}>
-                    Campaign Velocity: {config.label}
-                  </h2>
-                  <p className={`text-sm mt-1 font-medium ${theme.textSecondary} ${theme.fontFamilyBody}`}>Comparing Actual Results vs. Strategic Plan</p>
-                </div>
-                <div className={`flex items-center gap-4 text-xs font-medium px-4 py-2 rounded-lg border ${theme.border} bg-white/5`}>
-                  <div className="flex items-center gap-2">
-                    <span className="w-6 h-0.5 border-t-2 border-dashed opacity-40" style={{ borderColor: theme.colors.white }}></span>
-                    <span className={`${theme.textSecondary} ${theme.fontFamilyBody}`}>Goal</span>
-                  </div>
-                  <div className={`h-4 w-px bg-white/20`}></div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: theme.colors.white }}></span>
-                    <span className={`${theme.textPrimary} ${theme.fontFamilyBody}`}>Actual</span>
-                  </div>
-                </div>
+          {/* --- MAIN CHART --- */}
+          <div className="w-full p-8 transition-all duration-500 border border-white/5" style={{ backgroundColor: COLORS.purpleLight }}>
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-2xl font-bold flex items-center gap-2 text-white font-playfair">
+                  Campaign Velocity: {config.label}
+                </h2>
+                <p className="text-sm mt-1 font-medium text-white/50 font-inter">Comparing Actual Results vs. Strategic Plan</p>
               </div>
-
-              <div className="h-[400px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorMain" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={config.color} stopOpacity={design === 'minimal' ? 0 : 0.25}/>
-                        <stop offset="95%" stopColor={config.color} stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    
-                    {design !== 'minimal' && (
-                      <CartesianGrid 
-                        strokeDasharray="3 3" 
-                        vertical={false} 
-                        stroke="rgba(254,254,254,0.1)" 
-                      />
-                    )}
-
-                    {/* Faint Horizontal Reference Lines */}
-                    <ReferenceLine y={chartMax * 0.25} stroke="rgba(254,254,254,0.1)" strokeDasharray="3 3" />
-                    <ReferenceLine y={chartMax * 0.50} stroke="rgba(254,254,254,0.1)" strokeDasharray="3 3" />
-                    <ReferenceLine y={chartMax * 0.75} stroke="rgba(254,254,254,0.1)" strokeDasharray="3 3" />
-
-                    <XAxis 
-                      dataKey="displayDate" 
-                      tick={{ fill: 'rgba(254,254,254,0.5)', fontSize: 11, fontWeight: 500, fontFamily: 'Inter' }} 
-                      axisLine={design === 'minimal'} 
-                      tickLine={false} 
-                      minTickGap={40}
-                    />
-                    <YAxis 
-                      tick={{ fill: 'rgba(254,254,254,0.5)', fontSize: 11, fontWeight: 500, fontFamily: 'Inter' }} 
-                      axisLine={design === 'minimal'} 
-                      tickLine={false}
-                      tickFormatter={(value) => value >= 1000 ? `${(value/1000).toFixed(1)}k` : value}
-                    />
-                    <Tooltip content={<CustomTooltip theme={theme} />} />
-                    
-                    <Line 
-                      type={theme.chartType} 
-                      dataKey={config.planned} 
-                      stroke={config.color} 
-                      strokeDasharray="4 4" 
-                      strokeWidth={design === 'minimal' ? 2 : 2}
-                      dot={false}
-                      opacity={theme.chartPlannedOpacity}
-                      name="Goal"
-                      activeDot={false}
-                      isAnimationActive={true}
-                    />
-                    
-                    {design === 'minimal' ? (
-                      <Line 
-                        type={theme.chartType}
-                        dataKey={config.actual}
-                        stroke={config.color}
-                        strokeWidth={theme.chartStrokeWidth}
-                        dot={false}
-                        activeDot={{ r: 4, fill: config.color }}
-                        name="Actual"
-                      />
-                    ) : (
-                      <Area 
-                        type={theme.chartType} 
-                        dataKey={config.actual} 
-                        stroke={config.color} 
-                        strokeWidth={theme.chartStrokeWidth}
-                        fillOpacity={1} 
-                        fill="url(#colorMain)" 
-                        name="Actual"
-                        style={{ filter: theme.filter }} 
-                        animationDuration={1000}
-                      />
-                    )}
-                  </ComposedChart>
-                </ResponsiveContainer>
+              <div className="flex items-center gap-6 text-xs font-medium px-4 py-2 border border-white/10 bg-white/5">
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-0.5 border-t-2 border-dashed opacity-40 border-white"></span>
+                  <span className="text-white/70 font-inter">Goal</span>
+                </div>
+                <div className="h-4 w-px bg-white/10"></div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-white"></span>
+                  <span className="text-white font-inter">Actual</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <h3 className={`text-xs font-bold uppercase tracking-widest mb-6 flex items-center gap-2 px-1 ${theme.textSecondary} ${theme.fontFamilyBody}`}>
-            <Filter size={12} /> Data Attribution: <span className="text-white">{config.label}</span>
-          </h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <DrillDownTable 
-              title="Inbox Provider" 
-              icon={Server} 
-              data={inboxStats.data} 
-              total={inboxStats.total}
-              theme={theme}
-            />
-            <DrillDownTable 
-              title="Region" 
-              icon={Globe} 
-              data={regionStats.data} 
-              total={regionStats.total}
-              theme={theme}
-            />
-            <DrillDownTable 
-              title="Persona" 
-              icon={Users} 
-              data={personaStats.data} 
-              total={personaStats.total}
-              theme={theme}
-            />
-            <DrillDownTable 
-              title="Campaign" 
-              icon={Layers} 
-              data={campaignStats.data} 
-              total={campaignStats.total}
-              theme={theme}
-            />
-          </div>
+            <div className="h-[450px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorMain" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={config.color} stopOpacity={0.2}/>
+                      <stop offset="95%" stopColor={config.color} stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  
+                  <CartesianGrid 
+                    strokeDasharray="3 3" 
+                    vertical={false} 
+                    stroke="rgba(254,254,254,0.05)" 
+                  />
 
-        </main>
-        )}
-      </div>
-    </>
+                  {/* Faint Horizontal Reference Lines - 3/4 Lines */}
+                  <ReferenceLine y={chartMax * 0.25} stroke="rgba(254,254,254,0.1)" strokeDasharray="3 3" />
+                  <ReferenceLine y={chartMax * 0.50} stroke="rgba(254,254,254,0.1)" strokeDasharray="3 3" />
+                  <ReferenceLine y={chartMax * 0.75} stroke="rgba(254,254,254,0.1)" strokeDasharray="3 3" />
+
+                  <XAxis 
+                    dataKey="displayDate" 
+                    tick={{ fill: 'rgba(254,254,254,0.5)', fontSize: 11, fontWeight: 500, fontFamily: 'Inter' }} 
+                    axisLine={false} 
+                    tickLine={false} 
+                    minTickGap={60}
+                    dy={10}
+                  />
+                  <YAxis 
+                    tick={{ fill: 'rgba(254,254,254,0.5)', fontSize: 11, fontWeight: 500, fontFamily: 'Inter' }} 
+                    axisLine={false} 
+                    tickLine={false}
+                    tickFormatter={(value) => value >= 1000 ? `${(value/1000).toFixed(1)}k` : value}
+                    dx={-10}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  
+                  <Line 
+                    type="monotone" 
+                    dataKey={config.planned} 
+                    stroke={config.color} 
+                    strokeDasharray="4 4" 
+                    strokeWidth={2}
+                    dot={false}
+                    opacity={0.4}
+                    name="Goal"
+                    activeDot={false}
+                    isAnimationActive={true}
+                  />
+                  
+                  <Area 
+                    type="monotone" 
+                    dataKey={config.actual} 
+                    stroke={config.color} 
+                    strokeWidth={2}
+                    fillOpacity={1} 
+                    fill="url(#colorMain)" 
+                    name="Actual"
+                    animationDuration={1500}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        <h3 className="text-xs font-bold uppercase tracking-widest mb-6 flex items-center gap-2 px-1 text-white/50 font-inter">
+          <Filter size={12} /> Data Attribution: <span className="text-white">{config.label}</span>
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <DrillDownTable 
+            title="Inbox Provider" 
+            icon={Server} 
+            data={inboxStats.data} 
+            total={inboxStats.total}
+          />
+          <DrillDownTable 
+            title="Region" 
+            icon={Globe} 
+            data={regionStats.data} 
+            total={regionStats.total}
+          />
+          <DrillDownTable 
+            title="Persona" 
+            icon={Users} 
+            data={personaStats.data} 
+            total={personaStats.total}
+          />
+          <DrillDownTable 
+            title="Campaign" 
+            icon={Layers} 
+            data={campaignStats.data} 
+            total={campaignStats.total}
+          />
+        </div>
+
+      </main>
+      )}
+    </div>
   );
 }
